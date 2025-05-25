@@ -38,16 +38,14 @@ public class Workout {
         this.exercises = new ArrayList<>();
     }
 
+    // Fixed: just return the String id
     public String getId() {
-        try {
-            return Long.parseLong(this.id);
-        } catch (NumberFormatException e) {
-            return this.id.hashCode() & 0xffffffffL;
-        }
+        return id;
     }
 
-    public void setId(Long id) {
-        this.id = String.valueOf(id);
+    // Fixed: accept String for id
+    public void setId(String id) {
+        this.id = id;
     }
 
     public User getUser() {

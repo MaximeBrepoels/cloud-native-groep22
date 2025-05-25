@@ -82,7 +82,7 @@ public class ExerciseRepository {
         }
     }
 
-    public List<Exercise> findByUserId(Long userId) {
+    public List<Exercise> findByUserId(String userId) {
         List<Exercise> exercises = new ArrayList<>();
         List<Workout> workouts = workoutRepository.findWorkoutsByUserId(userId);
         for (Workout workout : workouts) {

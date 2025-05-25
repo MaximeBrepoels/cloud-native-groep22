@@ -6,12 +6,12 @@ import cloudnative.fitapp.exception.UserServiceException;
 import cloudnative.fitapp.repository.UserRepository;
 import cloudnative.fitapp.repository.WorkoutRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 @Service
 public class UserService {
@@ -33,23 +33,15 @@ public class UserService {
         }
 
         User newUser = new User(name, email, password);
-        newUser.setId(Long.valueOf(String.valueOf(System.currentTimeMillis())));
+        newUser.setId(String.valueOf(System.currentTimeMillis())); // Use String
         return userRepository.save(newUser);
     }
 
-    public User getUserById(Long id) {
+    public User getUserById(String id) { // Use String
         return userRepository.findById(id).orElse(null);
     }
 
-    public User getUserByEmail(String email) {
-        return userRepository.findByEmail(email);
-    }
-
-    public List<User> getAllUsers() {
-        return (List<User>) userRepository.findAll();
-    }
-
-    public boolean deleteUser(Long id) {
+    public boolean deleteUser(String id) { // Use String
         if (userRepository.existsById(id)) {
             userRepository.deleteById(id);
             return true;
@@ -57,33 +49,20 @@ public class UserService {
         return false;
     }
 
-    public List<Workout> getAllWorkoutsForUser(Long userId) {
+    public List<Workout> getAllWorkoutsForUser(String userId) { // Use String
         User user = getUserById(userId);
         if (user == null) {
             throw new UserServiceException("User not found with ID: " + userId);
         }
-
         List<Workout> workouts = workoutRepository.findWorkoutsByUserId(userId);
-        // Set transient user reference
-        for (Workout workout : workouts) {
-            workout.setUser(user);
-        }
+        // Optionally set user for each workout if needed
+        // for (Workout workout : workouts) {
+        //     workout.setUser(user);
+        // }
         return workouts;
     }
 
-    public User updateUser(String email, User newValuesUser) {
-        User user = getUserByEmail(email);
-
-        if (!user.getEmail().equals(newValuesUser.getEmail())) {
-            throw new UserServiceException("Email cannot be changed");
-        }
-
-        user.updateValuesUser(newValuesUser.getName(), newValuesUser.getEmail(), newValuesUser.getPassword());
-
-        return userRepository.save(user);
-    }
-
-    public void completedWorkout(Long userId) {
+    public void completedWorkout(String userId) { // Use String
         User user = getUserById(userId);
         if (user == null) {
             throw new UserServiceException("User not found with ID: " + userId);
@@ -92,28 +71,7 @@ public class UserService {
         userRepository.save(user);
     }
 
-    @Scheduled(cron = "0 0 0 * * SUN")
-    public void validateStreaks() {
-        List<User> users = (List<User>) userRepository.findAll();
-        System.out.println("Validating streaks for all users, usercount: " + users.size());
-        for (User user : users) {
-            System.out.println("Validating streak for user: " + user.getName());
-            if (user.getStreakGoal() == 0) {
-                System.out.println("Streak goal is 0, skipping validation");
-            } else if (user.getStreakGoal() <= user.getStreakProgress()) {
-                System.out.println("Streak goal reached, resetting progress");
-                user.setStreakProgress(0);
-                user.setStreak(user.getStreak() + 1);
-            } else {
-                System.out.println("Streak goal not reached, resetting progress and streak");
-                user.setStreakProgress(0);
-                user.setStreak(0);
-            }
-            userRepository.save(user);
-        }
-    }
-
-    public void updateStreakGoal(Long userId, Integer streakGoal) {
+    public void updateStreakGoal(String userId, Integer streakGoal) { // Use String
         User user = getUserById(userId);
         if (user == null) {
             throw new UserServiceException("User not found with ID: " + userId);
@@ -126,7 +84,7 @@ public class UserService {
         userRepository.save(user);
     }
 
-    public void updatePassword(Long userId, String currentPassword, String newPassword) {
+    public void updatePassword(String userId, String currentPassword, String newPassword) { // Use String
         User user = getUserById(userId);
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
             throw new UserServiceException("Current password is incorrect");
@@ -136,5 +94,27 @@ public class UserService {
         }
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
+    }
+
+    public User getUserByEmail(String email) {
+        return userRepository.findByEmail(email);
+    }
+
+    public List<User> getAllUsers() {
+        return StreamSupport
+                .stream(userRepository.findAll().spliterator(), false)
+                .collect(Collectors.toList());
+    }
+
+    public User updateUser(String email, User updatedUser) {
+        User existingUser = userRepository.findByEmail(email);
+        if (existingUser == null) {
+            throw new UserServiceException("User not found with email: " + email);
+        }
+        existingUser.setName(updatedUser.getName());
+        existingUser.setPassword(updatedUser.getPassword());
+        existingUser.setStreakGoal(updatedUser.getStreakGoal());
+        existingUser.setStreakProgress(updatedUser.getStreakProgress());
+        return userRepository.save(existingUser);
     }
 }

@@ -12,15 +12,7 @@ import java.util.Optional;
 public interface WorkoutRepository extends CosmosRepository<Workout, String> {
 
     @Query("SELECT * FROM c WHERE c.userId = @userId")
-    List<Workout> findWorkoutsByUserId(Long userId);
+    List<Workout> findWorkoutsByUserId(String userId); // Changed to String
 
     Optional<Workout> findById(String id);
-
-    default Optional<Workout> findById(Long id) {
-        return findById(String.valueOf(id));
-    }
-
-    default void deleteById(Long id) {
-        deleteById(String.valueOf(id));
-    }
 }

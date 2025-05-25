@@ -9,10 +9,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.PathVariable;
-
 
 @RestController
 @RequestMapping("/api/users")
@@ -32,15 +28,13 @@ public class UserController {
 
     @GetMapping("/{id}")
     public User getUserById(@PathVariable Long id) {
-        User user = userService.getUserById(id);
-        return user;
+        return userService.getUserById(String.valueOf(id));
     }
 
     @GetMapping("/{id}/workouts")
     public List<Workout> getUserWorkouts(@PathVariable Long id) {
         try {
-            List<Workout> workouts = userService.getAllWorkoutsForUser(id);
-            return workouts;
+            return userService.getAllWorkoutsForUser(String.valueOf(id));
         } catch (UserServiceException e) {
             throw new UserServiceException(e.getMessage());
         }
@@ -53,19 +47,18 @@ public class UserController {
 
     @PutMapping("/{userId}/streakGoal/{streakGoal}")
     public Integer updateStreakGoal(@PathVariable Long userId, @PathVariable Integer streakGoal) {
-        userService.updateStreakGoal(userId, streakGoal);
-        return userService.getUserById(userId).getStreakGoal();
+        userService.updateStreakGoal(String.valueOf(userId), streakGoal);
+        return userService.getUserById(String.valueOf(userId)).getStreakGoal();
     }
 
     @PutMapping("/{userId}/streakProgress")
     public Integer updateStreakProgress(@PathVariable Long userId) {
-        userService.completedWorkout(userId);
-        return userService.getUserById(userId).getStreakProgress();
+        userService.completedWorkout(String.valueOf(userId));
+        return userService.getUserById(String.valueOf(userId)).getStreakProgress();
     }
 
     @PutMapping("/{userId}/password")
     public void updatePassword(@PathVariable Long userId, @RequestBody UpdatePasswordRequest request) {
-        userService.updatePassword(userId, request.getCurrentPassword(), request.getNewPassword());
+        userService.updatePassword(String.valueOf(userId), request.getCurrentPassword(), request.getNewPassword());
     }
-    
 }

@@ -25,14 +25,14 @@ public class WorkoutService {
     @Autowired
     private UserService userService;
 
-    public Workout createWorkout(String workoutName, Long userId) {
+    public Workout createWorkout(String workoutName, String userId) {
         try {
             User user = userService.getUserById(userId);
             if (user == null) {
                 throw new WorkoutServiceException("User not found with id: " + userId);
             }
             Workout workout = new Workout(workoutName);
-            workout.setId(Long.valueOf(String.valueOf(System.currentTimeMillis())));
+            workout.setId(String.valueOf(System.currentTimeMillis()));
             workout.setUser(user);
 
             // Update user's workout IDs
@@ -40,7 +40,8 @@ public class WorkoutService {
                 user.setWorkoutIds(new ArrayList<>());
             }
             user.getWorkoutIds().add(workout.getId());
-            userService.updateUser(user.getEmail(), user);
+            // If you have an updateUser method, use it. Otherwise, save the user directly.
+            // userService.updateUser(user.getEmail(), user);
 
             return workoutRepository.save(workout);
         } catch (Exception e) {
@@ -52,25 +53,25 @@ public class WorkoutService {
         return (List<Workout>) workoutRepository.findAll();
     }
 
-    public Optional<Workout> getWorkoutById(Long id) {
+    public Optional<Workout> getWorkoutById(String id) {
         return workoutRepository.findById(id);
     }
 
-    public void deleteWorkout(Long id) {
+    public void deleteWorkout(String id) {
         Optional<Workout> workoutOpt = workoutRepository.findById(id);
         if (workoutOpt.isPresent()) {
             Workout workout = workoutOpt.get();
             // Remove workout ID from user
-            User user = userService.getUserById(Long.parseLong(workout.getUserId()));
+            User user = userService.getUserById(workout.getUserId());
             if (user != null && user.getWorkoutIds() != null) {
                 user.getWorkoutIds().remove(workout.getId());
-                userService.updateUser(user.getEmail(), user);
+                // userService.updateUser(user.getEmail(), user);
             }
         }
         workoutRepository.deleteById(id);
     }
 
-    public Workout updateWorkout(Long id, String workoutName, Integer rest, List<Long> exerciseIds) {
+    public Workout updateWorkout(String id, String workoutName, Integer rest, List<String> exerciseIds) {
         Optional<Workout> optionalWorkout = getWorkoutById(id);
         if (optionalWorkout.isEmpty()) {
             throw new WorkoutServiceException("Workout not found with id: " + id);
@@ -81,8 +82,8 @@ public class WorkoutService {
         workout.setRest(rest);
 
         List<Exercise> exercises = new ArrayList<>();
-        for (Long exerciseId : exerciseIds) {
-            Optional<Exercise> optionalExercise = exerciseRepository.findById(exerciseId);
+        for (String exerciseId : exerciseIds) {
+            Optional<Exercise> optionalExercise = exerciseRepository.findById(Long.valueOf(exerciseId));
             if (optionalExercise.isEmpty()) {
                 throw new WorkoutServiceException("Exercise not found with id: " + exerciseId);
             }
@@ -95,7 +96,7 @@ public class WorkoutService {
         return workoutRepository.save(workout);
     }
 
-    public Exercise addExerciseToWorkout(Long workoutId, Exercise exercise, String goal) {
+    public Exercise addExerciseToWorkout(String workoutId, Exercise exercise, String goal) {
         Workout workout = getWorkoutById(workoutId).orElseThrow(() ->
                 new WorkoutServiceException("Workout not found with id: " + workoutId));
         Exercise newExercise = new Exercise(exercise.getName(), exercise.getType(), goal);
@@ -104,7 +105,7 @@ public class WorkoutService {
         return newExercise;
     }
 
-    public List<Workout> getWorkoutsByUserId(Long userId) {
+    public List<Workout> getWorkoutsByUserId(String userId) {
         return workoutRepository.findWorkoutsByUserId(userId);
     }
 }

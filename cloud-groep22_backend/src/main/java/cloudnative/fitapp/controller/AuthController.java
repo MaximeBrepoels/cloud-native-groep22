@@ -27,7 +27,7 @@ public class AuthController {
         try {
             String token = authService.login(loginRequest.getEmail(), loginRequest.getPassword());
             User user = userService.getUserByEmail(loginRequest.getEmail());
-            Long userId = user.getId();
+            String userId = user.getId(); // Changed to String
             return new AuthResponse(token, userId);
         } catch (AuthServiceException e) {
             throw new AuthServiceException(e.getMessage());
@@ -63,9 +63,9 @@ public class AuthController {
     @Setter
     public static class AuthResponse {
         private String token;
-        private Long userId;
+        private String userId; // Changed to String
 
-        public AuthResponse(String token, Long userId) {
+        public AuthResponse(String token, String userId) {
             this.token = token;
             this.userId = userId;
         }

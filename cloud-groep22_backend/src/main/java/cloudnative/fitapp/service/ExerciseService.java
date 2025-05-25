@@ -42,13 +42,13 @@ public class ExerciseService {
     }
 
     public List<Exercise> getExercisesByWorkoutId(Long workoutId) {
-        Workout workout = workoutRepository.findById(workoutId)
+        Workout workout = workoutRepository.findById(String.valueOf(workoutId))
                 .orElseThrow(() -> new RuntimeException("Workout not found"));
         return workout.getExercises();
     }
 
     public Exercise createExercise(Exercise exercise, Long workoutId) {
-        Workout workout = workoutService.getWorkoutById(workoutId).orElse(null);
+        Workout workout = workoutService.getWorkoutById(String.valueOf(workoutId)).orElse(null);
         if (workout != null) {
             exercise.setWorkout(workout);
             exercise.setId(String.valueOf(System.currentTimeMillis()));
@@ -65,7 +65,7 @@ public class ExerciseService {
     }
 
     public String deleteExerciseFromWorkout(Long workoutId, Long exerciseId) {
-        Workout workout = workoutService.getWorkoutById(workoutId)
+        Workout workout = workoutService.getWorkoutById(String.valueOf(workoutId))
                 .orElseThrow(() -> new ExerciseServiceException("Workout not found with id: " + workoutId));
 
         Exercise exercise = getExerciseById(exerciseId);
@@ -316,7 +316,7 @@ public class ExerciseService {
     }
 
     public List<Exercise> getExercisesByUserId(Long userId) {
-        List<Exercise> exercises = exerciseRepository.findByUserId(userId);
+        List<Exercise> exercises = exerciseRepository.findByUserId(String.valueOf(userId));
 
         if (exercises != null && !exercises.isEmpty()) {
             System.out.println("exercises: " + exercises.get(0).getProgressList());

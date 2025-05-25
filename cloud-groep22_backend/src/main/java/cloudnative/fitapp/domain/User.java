@@ -3,6 +3,7 @@ package cloudnative.fitapp.domain;
 import com.azure.spring.data.cosmos.core.mapping.Container;
 import com.azure.spring.data.cosmos.core.mapping.PartitionKey;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.Id;
@@ -16,6 +17,7 @@ import java.util.List;
 
 @Getter
 @Setter
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Container(containerName = "users")
 public class User {
 
@@ -54,18 +56,6 @@ public class User {
         this.password = password;
         this.workoutIds = new ArrayList<>();
         this.bodyweightList = new ArrayList<>();
-    }
-
-    public Long getId() {
-        try {
-            return Long.parseLong(this.id);
-        } catch (NumberFormatException e) {
-            return this.id.hashCode() & 0xffffffffL;
-        }
-    }
-
-    public void setId(Long id) {
-        this.id = String.valueOf(id);
     }
 
     public Collection<? extends GrantedAuthority> getAuthorities() {
