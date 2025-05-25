@@ -40,12 +40,6 @@ public class User {
     private Integer streakProgress = 0;
     private Integer streak = 0;
 
-    // Transient fields for compatibility
-    @JsonIgnore
-    private transient List<Workout> workouts = new ArrayList<>();
-
-    @JsonIgnore
-    private transient List<Bodyweight> bodyweight = new ArrayList<>();
 
     public User() {
     }
