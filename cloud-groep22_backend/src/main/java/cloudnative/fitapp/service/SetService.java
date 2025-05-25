@@ -27,10 +27,9 @@ public class SetService {
 
     public Set addSetToExercise(Long exerciseId, Set set) {
         Exercise exercise = exerciseService.getExerciseById(exerciseId);
-
         Set newSet = exercise.addSet(set);
-
-        return setRepository.save(newSet);
+        exerciseService.updateExercise(exerciseId, exercise);
+        return newSet;
     }
 
     public void deleteSet(Long id) {
@@ -39,10 +38,8 @@ public class SetService {
 
     public Set updateSet(Long id, Set newValuesSet) {
         Set set = getSetById(id);
-
-        set.updateValuesSet(newValuesSet.getReps(), newValuesSet.getWeight(), newValuesSet.getDuration(),
-                newValuesSet.getExercise());
-
+        set.updateValuesSet(newValuesSet.getReps(), newValuesSet.getWeight(),
+                newValuesSet.getDuration(), newValuesSet.getExercise());
         return setRepository.save(set);
     }
 }

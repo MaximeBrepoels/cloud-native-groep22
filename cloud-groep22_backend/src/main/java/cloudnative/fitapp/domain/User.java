@@ -1,61 +1,49 @@
 package cloudnative.fitapp.domain;
 
+import com.azure.spring.data.cosmos.core.mapping.Container;
+import com.azure.spring.data.cosmos.core.mapping.PartitionKey;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.data.annotation.Id;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
-
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
-import lombok.Getter;
-import lombok.Setter;
 @Getter
 @Setter
-@Entity
-@Table(name = "users")
+@Container(containerName = "users")
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
-    @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false, unique = true)
+    @PartitionKey
     private String email;
 
-    @Column(nullable = false)
+    @JsonIgnore
     private String password;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
-    private List<Workout> workouts;
+    private List<String> workoutIds = new ArrayList<>();
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
-    private List<Bodyweight> bodyweight;
-
+    private List<Bodyweight> bodyweightList = new ArrayList<>();
 
     private Integer streakGoal = 0;
-
     private Integer streakProgress = 0;
-
     private Integer streak = 0;
 
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
-    }
+    // Transient fields for compatibility
+    @JsonIgnore
+    private transient List<Workout> workouts = new ArrayList<>();
+
+    @JsonIgnore
+    private transient List<Bodyweight> bodyweight = new ArrayList<>();
 
     public User() {
     }
@@ -64,14 +52,37 @@ public class User {
         this.name = name;
         this.email = email;
         this.password = password;
-        this.workouts = Collections.emptyList();
+        this.workoutIds = new ArrayList<>();
+        this.bodyweightList = new ArrayList<>();
     }
 
+    public Long getId() {
+        try {
+            return Long.parseLong(this.id);
+        } catch (NumberFormatException e) {
+            return this.id.hashCode() & 0xffffffffL;
+        }
+    }
+
+    public void setId(Long id) {
+        this.id = String.valueOf(id);
+    }
+
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
+    }
 
     public void updateValuesUser(String name, String email, String password) {
         this.name = name;
         this.email = email;
         this.password = password;
     }
-    
+
+    public List<Bodyweight> getBodyweight() {
+        return bodyweightList;
+    }
+
+    public void setBodyweight(List<Bodyweight> bodyweight) {
+        this.bodyweightList = bodyweight;
+    }
 }

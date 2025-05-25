@@ -1,37 +1,32 @@
 package cloudnative.fitapp.domain;
 
-import jakarta.persistence.*;
+import com.azure.spring.data.cosmos.core.mapping.Container;
+import com.azure.spring.data.cosmos.core.mapping.PartitionKey;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.data.annotation.Id;
 
 import java.util.ArrayList;
 import java.util.List;
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 @Getter
 @Setter
-@Entity
-@Table(name = "workouts")
+@Container(containerName = "workouts")
 public class Workout {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    @JsonBackReference
-    private User user;
+    @PartitionKey
+    private String userId;
 
-    @Column(nullable = false)
     private String name;
-
-    @Column(nullable = false)
     private int rest;
 
-    @OneToMany(mappedBy = "workout", cascade = CascadeType.ALL)
-    @JsonManagedReference
     private List<Exercise> exercises = new ArrayList<>();
+
+    @JsonIgnore
+    private transient User user;
 
     public Workout() {
         this.exercises = new ArrayList<>();
@@ -43,8 +38,33 @@ public class Workout {
         this.exercises = new ArrayList<>();
     }
 
+    public String getId() {
+        try {
+            return Long.parseLong(this.id);
+        } catch (NumberFormatException e) {
+            return this.id.hashCode() & 0xffffffffL;
+        }
+    }
+
+    public void setId(Long id) {
+        this.id = String.valueOf(id);
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+        if (user != null) {
+            this.userId = String.valueOf(user.getId());
+        }
+    }
+
     public List<Exercise> getExercises() {
-        exercises.sort((e1, e2) -> e1.getOrderIndex() - e2.getOrderIndex());
+        if (exercises != null) {
+            exercises.sort((e1, e2) -> e1.getOrderIndex() - e2.getOrderIndex());
+        }
         return exercises;
     }
 
@@ -53,7 +73,11 @@ public class Workout {
     }
 
     public Exercise addExercise(Exercise exercise) {
+        if (exercises == null) {
+            exercises = new ArrayList<>();
+        }
         exercise.setOrderIndex(exercises.size());
+        exercise.setId(System.currentTimeMillis() + "_" + exercises.size());
         exercises.add(exercise);
         exercise.setWorkout(this);
         return exercise;

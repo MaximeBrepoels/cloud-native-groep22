@@ -4,6 +4,7 @@ import cloudnative.fitapp.domain.Bodyweight;
 import cloudnative.fitapp.domain.User;
 import cloudnative.fitapp.repository.BodyweightRepository;
 import cloudnative.fitapp.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -11,14 +12,11 @@ import java.util.List;
 @Service
 public class BodyweightService {
 
-    private final BodyweightRepository bodyweightRepository;
-    private final UserRepository userRepository;
+    @Autowired
+    private BodyweightRepository bodyweightRepository;
 
-
-    public BodyweightService(BodyweightRepository bodyweightRepository, UserRepository userRepository) {
-        this.bodyweightRepository = bodyweightRepository;
-        this.userRepository = userRepository;
-    }
+    @Autowired
+    private UserRepository userRepository;
 
     public List<Bodyweight> getAllBodyweight() {
         return bodyweightRepository.findAll();
@@ -29,7 +27,8 @@ public class BodyweightService {
     }
 
     public Bodyweight addBodyweight(Long userId, Bodyweight bodyweight) {
-        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
+        User user = userRepository.findById(userId).orElseThrow(() ->
+                new RuntimeException("User not found"));
         bodyweight.setUser(user);
         return bodyweightRepository.save(bodyweight);
     }

@@ -4,22 +4,26 @@ import cloudnative.fitapp.domain.User;
 import cloudnative.fitapp.domain.Workout;
 import cloudnative.fitapp.exception.UserServiceException;
 import cloudnative.fitapp.repository.UserRepository;
+import cloudnative.fitapp.repository.WorkoutRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class UserService {
 
     @Autowired
-    private final UserRepository userRepository;
+    private UserRepository userRepository;
 
-    public UserService(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
+    @Autowired
+    private WorkoutRepository workoutRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     public User createUser(String name, String email, String password) {
         User existingUser = userRepository.findByEmail(email);
@@ -29,6 +33,7 @@ public class UserService {
         }
 
         User newUser = new User(name, email, password);
+        newUser.setId(Long.valueOf(String.valueOf(System.currentTimeMillis())));
         return userRepository.save(newUser);
     }
 
@@ -41,7 +46,7 @@ public class UserService {
     }
 
     public List<User> getAllUsers() {
-        return userRepository.findAll();
+        return (List<User>) userRepository.findAll();
     }
 
     public boolean deleteUser(Long id) {
@@ -58,7 +63,12 @@ public class UserService {
             throw new UserServiceException("User not found with ID: " + userId);
         }
 
-        return user.getWorkouts();
+        List<Workout> workouts = workoutRepository.findWorkoutsByUserId(userId);
+        // Set transient user reference
+        for (Workout workout : workouts) {
+            workout.setUser(user);
+        }
+        return workouts;
     }
 
     public User updateUser(String email, User newValuesUser) {
@@ -84,7 +94,7 @@ public class UserService {
 
     @Scheduled(cron = "0 0 0 * * SUN")
     public void validateStreaks() {
-        List<User> users = userRepository.findAll();
+        List<User> users = (List<User>) userRepository.findAll();
         System.out.println("Validating streaks for all users, usercount: " + users.size());
         for (User user : users) {
             System.out.println("Validating streak for user: " + user.getName());
@@ -115,9 +125,6 @@ public class UserService {
         user.setStreakGoal(streakGoal);
         userRepository.save(user);
     }
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
 
     public void updatePassword(Long userId, String currentPassword, String newPassword) {
         User user = getUserById(userId);

@@ -1,36 +1,20 @@
 package cloudnative.fitapp.domain;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
+
 @Getter
 @Setter
-@Entity
-@Table(name = "sets")
 public class Set {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
+    private String id;
     private int reps;
-
     private int weight;
-
     private int duration;
 
-    @ManyToOne
-    @JoinColumn(name = "exercise_id", nullable = false)
-    @JsonBackReference
-    private Exercise exercise;
+    @JsonIgnore
+    private transient Exercise exercise;
 
     public Set() {
     }
@@ -39,6 +23,23 @@ public class Set {
         this.reps = reps;
         this.weight = weight;
         this.duration = duration;
+        this.id = String.valueOf(System.currentTimeMillis());
+    }
+
+    public Long getId() {
+        try {
+            return Long.parseLong(this.id);
+        } catch (NumberFormatException e) {
+            return this.id.hashCode() & 0xffffffffL;
+        }
+    }
+
+    public void setId(Long id) {
+        this.id = String.valueOf(id);
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 
     public void updateValuesSet(int reps, int weight, int duration, Exercise exercise) {

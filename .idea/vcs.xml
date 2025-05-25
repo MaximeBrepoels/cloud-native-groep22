@@ -4,6 +4,5 @@
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/cloud-groep22_backend" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/cloud-groep22_frontend" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/cloud-native-groep22" vcs="Git" />
   </component>
 </project>

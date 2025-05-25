@@ -7,37 +7,26 @@ import cloudnative.fitapp.domain.Workout;
 import cloudnative.fitapp.enums.WorkoutType;
 import cloudnative.fitapp.exception.ExerciseServiceException;
 import cloudnative.fitapp.repository.ExerciseRepository;
-import cloudnative.fitapp.repository.ProgressRepository;
-
 import cloudnative.fitapp.repository.WorkoutRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import jakarta.persistence.EntityNotFoundException;
-import jakarta.transaction.Transactional;
-
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class ExerciseService {
 
     @Autowired
-    private final ExerciseRepository exerciseRepository;
+    private ExerciseRepository exerciseRepository;
 
     @Autowired
-    private final WorkoutService workoutService;
+    private WorkoutService workoutService;
 
     @Autowired
     private WorkoutRepository workoutRepository;
-
-    public ExerciseService(ExerciseRepository exerciseRepository, WorkoutService workoutService,
-            WorkoutRepository workoutRepository, ProgressRepository progressRepository) {
-        this.exerciseRepository = exerciseRepository;
-        this.workoutService = workoutService;
-        this.workoutRepository = workoutRepository;
-    }
 
     public List<Exercise> getAllExercises() {
         return exerciseRepository.findAll();
@@ -62,17 +51,17 @@ public class ExerciseService {
         Workout workout = workoutService.getWorkoutById(workoutId).orElse(null);
         if (workout != null) {
             exercise.setWorkout(workout);
+            exercise.setId(String.valueOf(System.currentTimeMillis()));
             return exerciseRepository.save(exercise);
         } else {
             throw new ExerciseServiceException("Workout not found with id: " + workoutId);
         }
-
     }
 
     public Exercise createExerciseByName(String exerciseName) {
-        Exercise exercise = new Exercise(exerciseName);
-        exercise.setName(exerciseName);
-        return exerciseRepository.save(exercise);
+        // This method doesn't make sense without a workout context in Cosmos DB
+        // since exercises are embedded in workouts
+        throw new ExerciseServiceException("Exercise must be created within a workout");
     }
 
     public String deleteExerciseFromWorkout(Long workoutId, Long exerciseId) {
@@ -84,13 +73,14 @@ public class ExerciseService {
             throw new ExerciseServiceException("Exercise does not belong to the specified workout");
         }
 
-        workout.getExercises().remove(exercise);
-        exerciseRepository.deleteById(exerciseId);
+        workout.getExercises().removeIf(e -> e.getId().equals(exercise.getId()));
+        workoutRepository.save(workout);
         return "Exercise successfully deleted from workout";
     }
 
     public Exercise updateExercise(Long id, Exercise newValuesExercise) {
         Exercise exercise = getExerciseById(id);
+        Workout workout = exercise.getWorkout();
 
         if (exercise.getType() != newValuesExercise.getType()) {
             exercise.clearProgress();
@@ -134,18 +124,18 @@ public class ExerciseService {
 
         if (exercise.getAutoIncrease() && exercise.getProgressList().size() <= 0) {
             if (exercise.getAutoIncrease() && exercise.getType().equals(WorkoutType.WEIGHTS)) {
-                addProgressWeight(exercise.getId(), exercise.getAutoIncreaseStartWeight(),
-                        new Date());
+                addProgressWeight(exercise.getId(), exercise.getAutoIncreaseStartWeight(), new Date());
             } else if (exercise.getAutoIncrease() && exercise.getType().equals(WorkoutType.DURATION)) {
-                addProgressDuration(exercise.getId(), exercise.getAutoIncreaseStartDuration(),
-                        new Date());
+                addProgressDuration(exercise.getId(), exercise.getAutoIncreaseStartDuration(), new Date());
             }
         }
 
         existingSets.removeIf(
                 existingSet -> newSets.stream().noneMatch(newSet -> newSet.getId().equals(existingSet.getId())));
 
-        return exerciseRepository.save(exercise);
+        // Save the parent workout to persist changes
+        workoutRepository.save(workout);
+        return exercise;
     }
 
     public Exercise autoIncrease(Long id) {
@@ -165,7 +155,6 @@ public class ExerciseService {
             if (exercise.getType().equals(WorkoutType.DURATION)) {
                 currentDuration = addDuration(currentDuration, factor);
                 addProgressDuration(id, currentDuration, new Date());
-
             } else {
                 addProgressWeight(id, currentWeight, new Date());
                 currentReps = addRepsAndSets(currentReps, factor);
@@ -178,7 +167,6 @@ public class ExerciseService {
                         if (currentSets >= maxSets) {
                             currentSets = minSets;
                             currentWeight = addWeight(currentWeight, factor, weightStep);
-
                         }
                     }
                     if (exercise.getType().equals(WorkoutType.BODYWEIGHT)) {
@@ -187,7 +175,6 @@ public class ExerciseService {
                         }
                     }
                 }
-
             }
             exercise.setAutoIncreaseCurrentSets(currentSets);
             exercise.setAutoIncreaseCurrentReps(currentReps);
@@ -195,24 +182,11 @@ public class ExerciseService {
             exercise.setAutoIncreaseCurrentWeight(currentWeight);
             exercise.setAutoIncreaseWeightStep(weightStep);
             exercise.setAutoIncreaseFactor(factor);
-
         }
-        return exerciseRepository.save(exercise);
-    }
 
-    public int addRepsAndSets(int value, double multiplier) {
-        return Math.max(value + 1, (int) Math.round(value * multiplier));
-    }
-
-    public int addDuration(int value, double multiplier) {
-        System.out.println("add duration " + Math.max(value + 5, (int) Math.round(value * multiplier)));
-        return Math.max(value + 5, (int) Math.round(value * multiplier));
-    }
-
-    public double addWeight(double value, double multiplier, double weightStep) {
-        double newWeight = value * multiplier;
-
-        return Math.ceil(newWeight / weightStep) * weightStep;
+        // Save the parent workout
+        workoutRepository.save(exercise.getWorkout());
+        return exercise;
     }
 
     public Exercise autoDecrease(Long id) {
@@ -232,7 +206,6 @@ public class ExerciseService {
             if (exercise.getType().equals(WorkoutType.DURATION)) {
                 currentDuration = subtractDuration(currentDuration, factor);
                 addProgressDuration(id, currentDuration, new Date());
-
             } else {
                 currentReps = subtractRepsAndSets(currentReps, factor);
 
@@ -260,11 +233,25 @@ public class ExerciseService {
             exercise.setAutoIncreaseCurrentWeight(currentWeight);
             exercise.setAutoIncreaseWeightStep(weightStep);
             exercise.setAutoIncreaseFactor(factor);
-
         }
 
-        return exerciseRepository.save(exercise);
+        // Save the parent workout
+        workoutRepository.save(exercise.getWorkout());
+        return exercise;
+    }
 
+    public int addRepsAndSets(int value, double multiplier) {
+        return Math.max(value + 1, (int) Math.round(value * multiplier));
+    }
+
+    public int addDuration(int value, double multiplier) {
+        System.out.println("add duration " + Math.max(value + 5, (int) Math.round(value * multiplier)));
+        return Math.max(value + 5, (int) Math.round(value * multiplier));
+    }
+
+    public double addWeight(double value, double multiplier, double weightStep) {
+        double newWeight = value * multiplier;
+        return Math.ceil(newWeight / weightStep) * weightStep;
     }
 
     public int subtractRepsAndSets(int value, double multiplier) {
@@ -277,26 +264,30 @@ public class ExerciseService {
 
     public double subtractWeight(double value, double multiplier, double weightStep) {
         double newWeight = value / multiplier;
-
         return Math.floor(newWeight / weightStep) * weightStep;
     }
 
-    @Transactional
     public Exercise addProgressWeight(Long exerciseId, double weight, Date date) {
         Exercise exercise = exerciseRepository.findById(exerciseId)
-                .orElseThrow(() -> new EntityNotFoundException("Exercise not found"));
+                .orElseThrow(() -> new ExerciseServiceException("Exercise not found"));
 
-        if (exercise.getProgressList().size() > 1 && secondProgress(
-                exercise.getProgressList()) && exercise.getProgressList().getLast().getWeight().equals(weight)) {
-            exercise.getProgressList().getLast().setDate(date);
+        if (exercise.getProgressList() == null) {
+            exercise.setProgressList(new ArrayList<>());
+        }
+
+        if (exercise.getProgressList().size() > 1 &&
+                secondProgress(exercise.getProgressList()) &&
+                exercise.getProgressList().get(exercise.getProgressList().size() - 1).getWeight().equals(weight)) {
+            exercise.getProgressList().get(exercise.getProgressList().size() - 1).setDate(date);
         } else {
             Progress progress = new Progress(weight, date);
             progress.setExercise(exercise);
             exercise.addProgress(progress);
         }
 
-        return exerciseRepository.save(exercise);
-
+        // Save the parent workout
+        workoutRepository.save(exercise.getWorkout());
+        return exercise;
     }
 
     private boolean secondProgress(List<Progress> progressList) {
@@ -305,20 +296,22 @@ public class ExerciseService {
             return true;
         }
         return false;
-
     }
 
-    @Transactional
     public Progress addProgressDuration(Long exerciseId, int duration, Date date) {
         Exercise exercise = exerciseRepository.findById(exerciseId)
-                .orElseThrow(() -> new EntityNotFoundException("Exercise not found"));
+                .orElseThrow(() -> new ExerciseServiceException("Exercise not found"));
+
+        if (exercise.getProgressList() == null) {
+            exercise.setProgressList(new ArrayList<>());
+        }
 
         Progress progress = new Progress(duration, date);
         progress.setExercise(exercise);
         exercise.addProgress(progress);
 
-        exerciseRepository.save(exercise);
-
+        // Save the parent workout
+        workoutRepository.save(exercise.getWorkout());
         return progress;
     }
 

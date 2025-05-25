@@ -6,6 +6,7 @@ import cloudnative.fitapp.domain.Workout;
 import cloudnative.fitapp.exception.WorkoutServiceException;
 import cloudnative.fitapp.repository.ExerciseRepository;
 import cloudnative.fitapp.repository.WorkoutRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -15,15 +16,14 @@ import java.util.Optional;
 @Service
 public class WorkoutService {
 
-    private final WorkoutRepository workoutRepository;
-    private final ExerciseRepository exerciseRepository;
-    private final UserService userService;
+    @Autowired
+    private WorkoutRepository workoutRepository;
 
-    public WorkoutService(WorkoutRepository workoutRepository, UserService userService, ExerciseRepository exerciseRepository) {
-        this.workoutRepository = workoutRepository;
-        this.exerciseRepository = exerciseRepository;
-        this.userService = userService;
-    }
+    @Autowired
+    private ExerciseRepository exerciseRepository;
+
+    @Autowired
+    private UserService userService;
 
     public Workout createWorkout(String workoutName, Long userId) {
         try {
@@ -32,7 +32,16 @@ public class WorkoutService {
                 throw new WorkoutServiceException("User not found with id: " + userId);
             }
             Workout workout = new Workout(workoutName);
+            workout.setId(Long.valueOf(String.valueOf(System.currentTimeMillis())));
             workout.setUser(user);
+
+            // Update user's workout IDs
+            if (user.getWorkoutIds() == null) {
+                user.setWorkoutIds(new ArrayList<>());
+            }
+            user.getWorkoutIds().add(workout.getId());
+            userService.updateUser(user.getEmail(), user);
+
             return workoutRepository.save(workout);
         } catch (Exception e) {
             throw new WorkoutServiceException(e.getMessage());
@@ -40,7 +49,7 @@ public class WorkoutService {
     }
 
     public List<Workout> getAllWorkouts() {
-        return workoutRepository.findAll();
+        return (List<Workout>) workoutRepository.findAll();
     }
 
     public Optional<Workout> getWorkoutById(Long id) {
@@ -48,6 +57,16 @@ public class WorkoutService {
     }
 
     public void deleteWorkout(Long id) {
+        Optional<Workout> workoutOpt = workoutRepository.findById(id);
+        if (workoutOpt.isPresent()) {
+            Workout workout = workoutOpt.get();
+            // Remove workout ID from user
+            User user = userService.getUserById(Long.parseLong(workout.getUserId()));
+            if (user != null && user.getWorkoutIds() != null) {
+                user.getWorkoutIds().remove(workout.getId());
+                userService.updateUser(user.getEmail(), user);
+            }
+        }
         workoutRepository.deleteById(id);
     }
 
@@ -77,10 +96,12 @@ public class WorkoutService {
     }
 
     public Exercise addExerciseToWorkout(Long workoutId, Exercise exercise, String goal) {
-        Workout workout = getWorkoutById(workoutId).orElseThrow(() -> new WorkoutServiceException("Workout not found with id: " + workoutId));
+        Workout workout = getWorkoutById(workoutId).orElseThrow(() ->
+                new WorkoutServiceException("Workout not found with id: " + workoutId));
         Exercise newExercise = new Exercise(exercise.getName(), exercise.getType(), goal);
         newExercise = workout.addExercise(newExercise);
-        return exerciseRepository.save(newExercise);
+        workoutRepository.save(workout);
+        return newExercise;
     }
 
     public List<Workout> getWorkoutsByUserId(Long userId) {
