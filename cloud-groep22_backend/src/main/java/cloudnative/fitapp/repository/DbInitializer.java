@@ -24,7 +24,7 @@ public class DbInitializer {
     @Autowired
     private WorkoutRepository workoutRepository;
 
-    @PostConstruct
+    // @PostConstruct
     public void init() {
         // Clean up existing data
         workoutRepository.deleteAll();
