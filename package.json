@@ -1,0 +1,12 @@
+{
+  "name": "cloud-native-groep22",
+  "private": true,
+  "scripts": {
+    "start:frontend": "cd cloud-groep22_frontend && npm run dev",
+    "start:backend": "cd cloud-groep22_backend && ./mvnw spring-boot:run",
+    "start:all": "concurrently \"npm run start:frontend\" \"npm run start:backend\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.0.0"
+  }
+}
