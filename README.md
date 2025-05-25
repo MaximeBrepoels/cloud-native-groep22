@@ -1,7 +1,3 @@
-Here's a clean, professional `README.md` tailored for your **FitApp monorepo** project (`cloud-native-groep22`), combining clear structure, developer onboarding guidance, and tooling notes:
-
----
-
 # FitApp – Cloud Native Project (Groep 22)
 
 Welcome to the **FitApp** monorepo – a cloud-native fitness tracking application developed by **Groep 22**. This project integrates a Java Spring Boot backend with a TypeScript Next.js frontend.
@@ -19,34 +15,23 @@ cloud-native-groep22/
 
 ---
 
-## 🚀 Getting Started
-
-### ✅ Prerequisites
-
-* Java 17+
-* Node.js (v18 or newer recommended)
-* Maven (or use the included `mvnw` wrapper)
-* npm (or `yarn`/`pnpm` if preferred)
-
----
-
-### 🔧 Backend Setup (`Spring Boot`)
+### 🔧 Back-end Setup (`Spring Boot`)
 
 ```bash
 cd cloud-groep22_backend
 ./mvnw spring-boot:run
 ```
 
-> This will start the backend on `http://localhost:8080`.
+> This will start the backend on `http://localhost:3000`.
 
 ---
 
-### 🎨 Frontend Setup (`Next.js`)
+### 🎨 Front-end Setup (`Next.js`)
 
 1. Create a `.env` file in `cloud-groep22_frontend/`:
 
    ```env
-   NEXT_PUBLIC_API_URL=http://localhost:8080/api
+   NEXT_PUBLIC_API_URL=http://localhost:3000/api
    ```
 
 2. Start the frontend:
@@ -57,7 +42,7 @@ cd cloud-groep22_backend
    npm run dev
    ```
 
-> The frontend runs on `http://localhost:3000`.
+> The frontend runs on `http://localhost:8080`.
 
 ---
 
@@ -88,7 +73,5 @@ To run **both frontend and backend** with a single command:
 * **Frontend:** Next.js (React, TypeScript)
 * **Backend:** Spring Boot (Java, Maven)
 * **Communication:** RESTful API
-* **Environment:** Local development using `.env` files
-* **Monorepo Tools:** Root `package.json` with `concurrently` for orchestration
 
 ---
