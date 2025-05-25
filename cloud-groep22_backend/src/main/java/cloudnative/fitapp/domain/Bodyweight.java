@@ -37,6 +37,7 @@ public class Bodyweight {
         this.id = String.valueOf(System.currentTimeMillis());
     }
 
+    // Keep the old Long getter for backward compatibility
     public Long getId() {
         try {
             return Long.parseLong(this.id);
@@ -45,7 +46,17 @@ public class Bodyweight {
         }
     }
 
+    // Keep the old Long setter for backward compatibility
     public void setId(Long id) {
         this.id = String.valueOf(id);
+    }
+
+    // Add String methods for Cosmos DB
+    public String getStringId() {
+        return this.id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 }

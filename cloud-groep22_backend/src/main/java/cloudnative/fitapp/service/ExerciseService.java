@@ -14,7 +14,6 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class ExerciseService {
@@ -51,29 +50,41 @@ public class ExerciseService {
         Workout workout = workoutService.getWorkoutById(String.valueOf(workoutId)).orElse(null);
         if (workout != null) {
             exercise.setWorkout(workout);
-            exercise.setId(String.valueOf(System.currentTimeMillis()));
-            return exerciseRepository.save(exercise);
+            exercise.setId(String.valueOf(System.currentTimeMillis() + (int)(Math.random() * 1000)));
+
+            // Add to workout's exercise list
+            if (workout.getExercises() == null) {
+                workout.setExercises(new ArrayList<>());
+            }
+            workout.getExercises().add(exercise);
+
+            // Save the workout (which contains the exercise)
+            workoutRepository.save(workout);
+            return exercise;
         } else {
             throw new ExerciseServiceException("Workout not found with id: " + workoutId);
         }
     }
 
     public Exercise createExerciseByName(String exerciseName) {
-        // This method doesn't make sense without a workout context in Cosmos DB
-        // since exercises are embedded in workouts
-        throw new ExerciseServiceException("Exercise must be created within a workout");
+        // Create a standalone exercise with temporary ID
+        Exercise exercise = new Exercise(exerciseName);
+        exercise.setId(String.valueOf(System.currentTimeMillis() + (int)(Math.random() * 1000)));
+        return exercise;
     }
 
     public String deleteExerciseFromWorkout(Long workoutId, Long exerciseId) {
         Workout workout = workoutService.getWorkoutById(String.valueOf(workoutId))
                 .orElseThrow(() -> new ExerciseServiceException("Workout not found with id: " + workoutId));
 
-        Exercise exercise = getExerciseById(exerciseId);
-        if (!exercise.getWorkout().getId().equals(workoutId)) {
-            throw new ExerciseServiceException("Exercise does not belong to the specified workout");
+        String exerciseIdStr = String.valueOf(exerciseId);
+        boolean removed = workout.getExercises().removeIf(e ->
+                exerciseIdStr.equals(e.getId()) || String.valueOf(e.getId()).equals(exerciseIdStr));
+
+        if (!removed) {
+            throw new ExerciseServiceException("Exercise not found in workout");
         }
 
-        workout.getExercises().removeIf(e -> e.getId().equals(exercise.getId()));
         workoutRepository.save(workout);
         return "Exercise successfully deleted from workout";
     }
@@ -86,6 +97,7 @@ public class ExerciseService {
             exercise.clearProgress();
         }
 
+        // Update all exercise properties
         exercise.setName(newValuesExercise.getName());
         exercise.setType(newValuesExercise.getType());
         exercise.setRest(newValuesExercise.getRest());
@@ -104,40 +116,57 @@ public class ExerciseService {
         exercise.setAutoIncreaseCurrentWeight(newValuesExercise.getAutoIncreaseCurrentWeight());
         exercise.setAutoIncreaseCurrentDuration(newValuesExercise.getAutoIncreaseCurrentDuration());
 
+        // Handle sets
         List<Set> existingSets = exercise.getSets();
         List<Set> newSets = newValuesExercise.getSets();
 
-        for (Set newSet : newSets) {
-            boolean updated = false;
-            for (Set existingSet : existingSets) {
-                if (existingSet.getId().equals(newSet.getId())) {
-                    existingSet.updateValuesSet(newSet.getReps(), newSet.getWeight(), newSet.getDuration(), exercise);
-                    updated = true;
-                    break;
+        if (newSets != null) {
+            for (Set newSet : newSets) {
+                boolean updated = false;
+                if (existingSets != null) {
+                    for (Set existingSet : existingSets) {
+                        if (existingSet.getId().equals(newSet.getId())) {
+                            existingSet.updateValuesSet(newSet.getReps(), newSet.getWeight(), newSet.getDuration(), exercise);
+                            updated = true;
+                            break;
+                        }
+                    }
+                }
+                if (!updated) {
+                    if (existingSets == null) {
+                        existingSets = new ArrayList<>();
+                        exercise.setSets(existingSets);
+                    }
+                    newSet.setExercise(exercise);
+                    if (newSet.getId() == null) {
+                        newSet.setId(String.valueOf(System.currentTimeMillis() + (int)(Math.random() * 1000)));
+                    }
+                    existingSets.add(newSet);
                 }
             }
-            if (!updated) {
-                newSet.setExercise(exercise);
-                existingSets.add(newSet);
+
+            // Remove sets that are no longer present
+            if (existingSets != null) {
+                existingSets.removeIf(
+                        existingSet -> newSets.stream().noneMatch(newSet -> newSet.getId().equals(existingSet.getId())));
             }
         }
 
-        if (exercise.getAutoIncrease() && exercise.getProgressList().size() <= 0) {
-            if (exercise.getAutoIncrease() && exercise.getType().equals(WorkoutType.WEIGHTS)) {
+        // Add initial progress if needed
+        if (exercise.getAutoIncrease() && (exercise.getProgressList() == null || exercise.getProgressList().size() <= 0)) {
+            if (exercise.getType().equals(WorkoutType.WEIGHTS)) {
                 addProgressWeight(exercise.getId(), exercise.getAutoIncreaseStartWeight(), new Date());
-            } else if (exercise.getAutoIncrease() && exercise.getType().equals(WorkoutType.DURATION)) {
+            } else if (exercise.getType().equals(WorkoutType.DURATION)) {
                 addProgressDuration(exercise.getId(), exercise.getAutoIncreaseStartDuration(), new Date());
             }
         }
-
-        existingSets.removeIf(
-                existingSet -> newSets.stream().noneMatch(newSet -> newSet.getId().equals(existingSet.getId())));
 
         // Save the parent workout to persist changes
         workoutRepository.save(workout);
         return exercise;
     }
 
+    // Rest of the methods remain the same but ensure they work with the Cosmos DB structure
     public Exercise autoIncrease(Long id) {
         Exercise exercise = getExerciseById(id);
         if (exercise.getAutoIncrease()) {
@@ -180,8 +209,6 @@ public class ExerciseService {
             exercise.setAutoIncreaseCurrentReps(currentReps);
             exercise.setAutoIncreaseCurrentDuration(currentDuration);
             exercise.setAutoIncreaseCurrentWeight(currentWeight);
-            exercise.setAutoIncreaseWeightStep(weightStep);
-            exercise.setAutoIncreaseFactor(factor);
         }
 
         // Save the parent workout
@@ -231,8 +258,6 @@ public class ExerciseService {
             exercise.setAutoIncreaseCurrentReps(currentReps);
             exercise.setAutoIncreaseCurrentDuration(currentDuration);
             exercise.setAutoIncreaseCurrentWeight(currentWeight);
-            exercise.setAutoIncreaseWeightStep(weightStep);
-            exercise.setAutoIncreaseFactor(factor);
         }
 
         // Save the parent workout
@@ -240,12 +265,12 @@ public class ExerciseService {
         return exercise;
     }
 
+    // Helper methods
     public int addRepsAndSets(int value, double multiplier) {
         return Math.max(value + 1, (int) Math.round(value * multiplier));
     }
 
     public int addDuration(int value, double multiplier) {
-        System.out.println("add duration " + Math.max(value + 5, (int) Math.round(value * multiplier)));
         return Math.max(value + 5, (int) Math.round(value * multiplier));
     }
 
@@ -282,6 +307,7 @@ public class ExerciseService {
         } else {
             Progress progress = new Progress(weight, date);
             progress.setExercise(exercise);
+            progress.setId(String.valueOf(System.currentTimeMillis() + (int)(Math.random() * 1000)));
             exercise.addProgress(progress);
         }
 
@@ -292,8 +318,8 @@ public class ExerciseService {
 
     private boolean secondProgress(List<Progress> progressList) {
         int length = progressList.size();
-        if (progressList.get(length - 1).getWeight().equals(progressList.get(length - 2).getWeight())) {
-            return true;
+        if (length >= 2 && progressList.get(length - 1).getWeight() != null && progressList.get(length - 2).getWeight() != null) {
+            return progressList.get(length - 1).getWeight().equals(progressList.get(length - 2).getWeight());
         }
         return false;
     }
@@ -308,6 +334,7 @@ public class ExerciseService {
 
         Progress progress = new Progress(duration, date);
         progress.setExercise(exercise);
+        progress.setId(String.valueOf(System.currentTimeMillis() + (int)(Math.random() * 1000)));
         exercise.addProgress(progress);
 
         // Save the parent workout
@@ -319,7 +346,6 @@ public class ExerciseService {
         List<Exercise> exercises = exerciseRepository.findByUserId(String.valueOf(userId));
 
         if (exercises != null && !exercises.isEmpty()) {
-            System.out.println("exercises: " + exercises.get(0).getProgressList());
             return exercises;
         } else {
             return new ArrayList<Exercise>();

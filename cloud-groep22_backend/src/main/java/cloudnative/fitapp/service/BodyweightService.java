@@ -27,9 +27,10 @@ public class BodyweightService {
     }
 
     public Bodyweight addBodyweight(Long userId, Bodyweight bodyweight) {
-        User user = userRepository.findById(userId).orElseThrow(() ->
+        User user = userRepository.findById(String.valueOf(userId)).orElseThrow(() ->
                 new RuntimeException("User not found"));
         bodyweight.setUser(user);
+        bodyweight.setId(String.valueOf(System.currentTimeMillis() + (int)(Math.random() * 1000)));
         return bodyweightRepository.save(bodyweight);
     }
 }

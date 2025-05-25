@@ -24,11 +24,22 @@ public class CosmosConfiguration extends AbstractCosmosConfiguration {
     public CosmosConfig cosmosConfig() {
         return CosmosConfig.builder()
                 .enableQueryMetrics(true)
+                .maxDegreeOfParallelism(1000)
+                .maxBufferedItemCount(100)
                 .build();
     }
 
     @Override
     protected String getDatabaseName() {
         return database;
+    }
+
+    // Override to provide the endpoint and key
+    public String getUri() {
+        return endpoint;
+    }
+
+    public String getKey() {
+        return key;
     }
 }
