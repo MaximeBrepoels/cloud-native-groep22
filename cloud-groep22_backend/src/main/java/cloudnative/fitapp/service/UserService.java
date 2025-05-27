@@ -26,9 +26,9 @@ public class UserService {
     private PasswordEncoder passwordEncoder;
 
     public User createUser(String name, String email, String password) {
-        User existingUser = userRepository.findByEmail(email);
-
-        if (existingUser != null) {
+        // Use the new method that returns a List
+        List<User> existingUsers = userRepository.findByEmail(email);
+        if (!existingUsers.isEmpty()) {
             throw new IllegalArgumentException("Email is already in use");
         }
 
@@ -55,10 +55,6 @@ public class UserService {
             throw new UserServiceException("User not found with ID: " + userId);
         }
         List<Workout> workouts = workoutRepository.findWorkoutsByUserId(userId);
-        // Optionally set user for each workout if needed
-        // for (Workout workout : workouts) {
-        //     workout.setUser(user);
-        // }
         return workouts;
     }
 
@@ -97,7 +93,9 @@ public class UserService {
     }
 
     public User getUserByEmail(String email) {
-        return userRepository.findByEmail(email);
+        // Use the new method that returns a List
+        List<User> users = userRepository.findByEmail(email);
+        return users.isEmpty() ? null : users.get(0);
     }
 
     public List<User> getAllUsers() {
@@ -107,10 +105,12 @@ public class UserService {
     }
 
     public User updateUser(String email, User updatedUser) {
-        User existingUser = userRepository.findByEmail(email);
-        if (existingUser == null) {
+        // Use the new method that returns a List
+        List<User> existingUsers = userRepository.findByEmail(email);
+        if (existingUsers.isEmpty()) {
             throw new UserServiceException("User not found with email: " + email);
         }
+        User existingUser = existingUsers.get(0);
         existingUser.setName(updatedUser.getName());
         existingUser.setPassword(updatedUser.getPassword());
         existingUser.setStreakGoal(updatedUser.getStreakGoal());

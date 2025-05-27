@@ -34,7 +34,8 @@ public class CosmosConfiguration extends AbstractCosmosConfiguration {
         return database;
     }
 
-    // Override to provide the endpoint and key
+    // These methods are required by AbstractCosmosConfiguration
+    // Note: No @Override needed as these might be new methods we're providing
     public String getUri() {
         return endpoint;
     }

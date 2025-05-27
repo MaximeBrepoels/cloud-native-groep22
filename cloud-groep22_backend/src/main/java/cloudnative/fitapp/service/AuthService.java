@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class AuthService {
 
@@ -28,7 +30,10 @@ public class AuthService {
             throw new AuthServiceException("Email and password are required");
         }
 
-        User user = userRepository.findByEmail(email);
+        // Use the new method that returns a List
+        List<User> users = userRepository.findByEmail(email);
+        User user = users.isEmpty() ? null : users.get(0);
+
         if (user == null) {
             throw new AuthServiceException("User with email " + email + " not found");
         } else if (!passwordEncoder.matches(password, user.getPassword())) {
@@ -48,7 +53,9 @@ public class AuthService {
             throw new AuthServiceException("Name can only contain letters and spaces");
         }
 
-        if (userRepository.findByEmail(email) != null) {
+        // Use the new method that returns a List
+        List<User> existingUsers = userRepository.findByEmail(email);
+        if (!existingUsers.isEmpty()) {
             throw new AuthServiceException("Email is already in use");
         }
 

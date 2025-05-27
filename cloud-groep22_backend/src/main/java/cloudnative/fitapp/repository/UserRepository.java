@@ -2,16 +2,22 @@ package cloudnative.fitapp.repository;
 
 import cloudnative.fitapp.domain.User;
 import com.azure.spring.data.cosmos.repository.CosmosRepository;
-import com.azure.spring.data.cosmos.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface UserRepository extends CosmosRepository<User, String> {
 
-    @Query("SELECT * FROM c WHERE c.email = @email")
-    User findByEmail(String email);
+    // Use Spring Data method naming - this should work better with Cosmos DB
+    List<User> findByEmail(String email);
+
+    // Add a convenience method for getting a single user by email
+    default User findSingleByEmail(String email) {
+        List<User> users = findByEmail(email);
+        return users.isEmpty() ? null : users.get(0);
+    }
 
     Optional<User> findById(String id);
 
