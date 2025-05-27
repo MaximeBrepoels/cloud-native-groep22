@@ -3,17 +3,15 @@ package cloudnative.fitapp.functions;
 import com.microsoft.azure.functions.*;
 import com.microsoft.azure.functions.annotation.*;
 import cloudnative.fitapp.domain.Exercise;
+import cloudnative.fitapp.domain.User;
 import cloudnative.fitapp.domain.Workout;
-import cloudnative.fitapp.service.WorkoutService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
- * Azure Functions for workout management endpoints.
+ * Simplified workout management functions.
  */
 public class WorkoutFunctions extends BaseFunctionHandler {
 
@@ -24,7 +22,7 @@ public class WorkoutFunctions extends BaseFunctionHandler {
     public HttpResponseMessage createWorkout(
             @HttpTrigger(
                     name = "req",
-                    methods = {HttpMethod.POST},
+                    methods = {HttpMethod.POST, HttpMethod.OPTIONS},
                     route = "workouts",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<String> request,
@@ -32,16 +30,44 @@ public class WorkoutFunctions extends BaseFunctionHandler {
 
         context.getLogger().info("Creating new workout");
 
+        if (request.getHttpMethod() == HttpMethod.OPTIONS) {
+            return handleCors(request);
+        }
+
         try {
             validateToken(request);
+
             String userId = getQueryParam(request, "userId")
                     .orElseThrow(() -> new IllegalArgumentException("userId parameter is required"));
 
             Workout workoutIn = parseBody(request, Workout.class);
-            WorkoutService workoutService = getBean(WorkoutService.class);
-            Workout workout = workoutService.createWorkout(workoutIn.getName(), userId);
 
-            return createResponse(request, workout);
+            // Find user to validate
+            String userQuery = String.format("SELECT * FROM c WHERE c.id = '%s'", userId);
+            List<User> users = cosmosDBService.query("users", userQuery, User.class);
+
+            if (users.isEmpty()) {
+                throw new IllegalArgumentException("User not found with id: " + userId);
+            }
+
+            User user = users.get(0);
+
+            // Create workout
+            Workout workout = new Workout(workoutIn.getName());
+            workout.setId(String.valueOf(System.currentTimeMillis()));
+            workout.setUserId(userId);
+
+            // Save workout
+            Workout savedWorkout = cosmosDBService.save("workouts", workout, userId, Workout.class);
+
+            // Update user's workout IDs
+            if (user.getWorkoutIds() == null) {
+                user.setWorkoutIds(new java.util.ArrayList<>());
+            }
+            user.getWorkoutIds().add(workout.getId());
+            cosmosDBService.update("users", user, user.getEmail(), User.class);
+
+            return createResponse(request, savedWorkout);
         } catch (Exception e) {
             return handleException(request, e);
         }
@@ -54,7 +80,7 @@ public class WorkoutFunctions extends BaseFunctionHandler {
     public HttpResponseMessage getAllWorkouts(
             @HttpTrigger(
                     name = "req",
-                    methods = {HttpMethod.GET},
+                    methods = {HttpMethod.GET, HttpMethod.OPTIONS},
                     route = "workouts",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<Optional<String>> request,
@@ -62,10 +88,13 @@ public class WorkoutFunctions extends BaseFunctionHandler {
 
         context.getLogger().info("Getting all workouts");
 
+        if (request.getHttpMethod() == HttpMethod.OPTIONS) {
+            return handleCors(request);
+        }
+
         try {
             validateToken(request);
-            WorkoutService workoutService = getBean(WorkoutService.class);
-            List<Workout> workouts = workoutService.getAllWorkouts();
+            List<Workout> workouts = cosmosDBService.findAll("workouts", Workout.class);
             return createResponse(request, workouts);
         } catch (Exception e) {
             return handleException(request, e);
@@ -79,7 +108,7 @@ public class WorkoutFunctions extends BaseFunctionHandler {
     public HttpResponseMessage getWorkoutById(
             @HttpTrigger(
                     name = "req",
-                    methods = {HttpMethod.GET},
+                    methods = {HttpMethod.GET, HttpMethod.OPTIONS},
                     route = "workouts/{id}",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<Optional<String>> request,
@@ -88,16 +117,21 @@ public class WorkoutFunctions extends BaseFunctionHandler {
 
         context.getLogger().info("Getting workout by ID: " + id);
 
+        if (request.getHttpMethod() == HttpMethod.OPTIONS) {
+            return handleCors(request);
+        }
+
         try {
             validateToken(request);
-            WorkoutService workoutService = getBean(WorkoutService.class);
-            Optional<Workout> workout = workoutService.getWorkoutById(id);
 
-            if (workout.isPresent()) {
-                return createResponse(request, workout.get());
-            } else {
+            String query = String.format("SELECT * FROM c WHERE c.id = '%s'", id);
+            List<Workout> workouts = cosmosDBService.query("workouts", query, Workout.class);
+
+            if (workouts.isEmpty()) {
                 return createErrorResponse(request, HttpStatus.NOT_FOUND, "Workout not found");
             }
+
+            return createResponse(request, workouts.get(0));
         } catch (Exception e) {
             return handleException(request, e);
         }
@@ -110,7 +144,7 @@ public class WorkoutFunctions extends BaseFunctionHandler {
     public HttpResponseMessage getWorkoutsByUserId(
             @HttpTrigger(
                     name = "req",
-                    methods = {HttpMethod.GET},
+                    methods = {HttpMethod.GET, HttpMethod.OPTIONS},
                     route = "workouts/user/{userId}",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<Optional<String>> request,
@@ -119,10 +153,16 @@ public class WorkoutFunctions extends BaseFunctionHandler {
 
         context.getLogger().info("Getting workouts for user: " + userId);
 
+        if (request.getHttpMethod() == HttpMethod.OPTIONS) {
+            return handleCors(request);
+        }
+
         try {
             validateToken(request);
-            WorkoutService workoutService = getBean(WorkoutService.class);
-            List<Workout> workouts = workoutService.getWorkoutsByUserId(userId);
+
+            String query = String.format("SELECT * FROM c WHERE c.userId = '%s'", userId);
+            List<Workout> workouts = cosmosDBService.query("workouts", query, Workout.class);
+
             return createResponse(request, workouts);
         } catch (Exception e) {
             return handleException(request, e);
@@ -136,7 +176,7 @@ public class WorkoutFunctions extends BaseFunctionHandler {
     public HttpResponseMessage deleteWorkout(
             @HttpTrigger(
                     name = "req",
-                    methods = {HttpMethod.DELETE},
+                    methods = {HttpMethod.DELETE, HttpMethod.OPTIONS},
                     route = "workouts/{id}",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<Optional<String>> request,
@@ -145,51 +185,41 @@ public class WorkoutFunctions extends BaseFunctionHandler {
 
         context.getLogger().info("Deleting workout: " + id);
 
-        try {
-            validateToken(request);
-            WorkoutService workoutService = getBean(WorkoutService.class);
-            workoutService.deleteWorkout(id);
-            return request.createResponseBuilder(HttpStatus.NO_CONTENT).build();
-        } catch (Exception e) {
-            return handleException(request, e);
+        if (request.getHttpMethod() == HttpMethod.OPTIONS) {
+            return handleCors(request);
         }
-    }
-
-    /**
-     * Update workout - PUT /api/workouts/{id}
-     */
-    @FunctionName("UpdateWorkout")
-    public HttpResponseMessage updateWorkout(
-            @HttpTrigger(
-                    name = "req",
-                    methods = {HttpMethod.PUT},
-                    route = "workouts/{id}",
-                    authLevel = AuthorizationLevel.ANONYMOUS)
-            HttpRequestMessage<String> request,
-            @BindingName("id") String id,
-            final ExecutionContext context) {
-
-        context.getLogger().info("Updating workout: " + id);
 
         try {
             validateToken(request);
-            ObjectMapper mapper = getBean(ObjectMapper.class);
-            JsonNode json = mapper.readTree(request.getBody());
 
-            String name = json.get("name").asText();
-            Integer rest = json.get("rest").asInt();
-            List<Long> exerciseIdList = mapper.convertValue(
-                    json.get("exerciseIds"),
-                    mapper.getTypeFactory().constructCollectionType(List.class, Long.class)
-            );
-            List<String> exerciseIds = exerciseIdList.stream()
-                    .map(Object::toString)
-                    .collect(Collectors.toList());
+            // Find workout first to get userId
+            String query = String.format("SELECT * FROM c WHERE c.id = '%s'", id);
+            List<Workout> workouts = cosmosDBService.query("workouts", query, Workout.class);
 
-            WorkoutService workoutService = getBean(WorkoutService.class);
-            Workout workout = workoutService.updateWorkout(id, name, rest, exerciseIds);
+            if (workouts.isEmpty()) {
+                return createErrorResponse(request, HttpStatus.NOT_FOUND, "Workout not found");
+            }
 
-            return createResponse(request, workout);
+            Workout workout = workouts.get(0);
+
+            // Remove from user's workout list
+            String userQuery = String.format("SELECT * FROM c WHERE c.id = '%s'", workout.getUserId());
+            List<User> users = cosmosDBService.query("users", userQuery, User.class);
+
+            if (!users.isEmpty()) {
+                User user = users.get(0);
+                if (user.getWorkoutIds() != null) {
+                    user.getWorkoutIds().remove(workout.getId());
+                    cosmosDBService.update("users", user, user.getEmail(), User.class);
+                }
+            }
+
+            // Delete workout
+            cosmosDBService.deleteById("workouts", id, workout.getUserId());
+
+            return request.createResponseBuilder(HttpStatus.NO_CONTENT)
+                    .header("Access-Control-Allow-Origin", "*")
+                    .build();
         } catch (Exception e) {
             return handleException(request, e);
         }
@@ -202,7 +232,7 @@ public class WorkoutFunctions extends BaseFunctionHandler {
     public HttpResponseMessage addExerciseToWorkout(
             @HttpTrigger(
                     name = "req",
-                    methods = {HttpMethod.POST},
+                    methods = {HttpMethod.POST, HttpMethod.OPTIONS},
                     route = "workouts/{id}/addExercise/{goal}",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<String> request,
@@ -212,11 +242,31 @@ public class WorkoutFunctions extends BaseFunctionHandler {
 
         context.getLogger().info("Adding exercise to workout: " + id);
 
+        if (request.getHttpMethod() == HttpMethod.OPTIONS) {
+            return handleCors(request);
+        }
+
         try {
             validateToken(request);
+
             Exercise exercise = parseBody(request, Exercise.class);
-            WorkoutService workoutService = getBean(WorkoutService.class);
-            Exercise newExercise = workoutService.addExerciseToWorkout(id, exercise, goal);
+
+            // Find workout
+            String query = String.format("SELECT * FROM c WHERE c.id = '%s'", id);
+            List<Workout> workouts = cosmosDBService.query("workouts", query, Workout.class);
+
+            if (workouts.isEmpty()) {
+                throw new IllegalArgumentException("Workout not found with id: " + id);
+            }
+
+            Workout workout = workouts.get(0);
+
+            // Create exercise with goal settings
+            Exercise newExercise = new Exercise(exercise.getName(), exercise.getType(), goal);
+            newExercise = workout.addExercise(newExercise);
+
+            // Update workout
+            cosmosDBService.update("workouts", workout, workout.getUserId(), Workout.class);
 
             return createResponse(request, newExercise);
         } catch (Exception e) {

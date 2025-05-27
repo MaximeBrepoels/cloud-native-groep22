@@ -1,16 +1,17 @@
 package cloudnative.fitapp.functions;
 
+import cloudnative.fitapp.service.UserService;
 import com.microsoft.azure.functions.*;
 import com.microsoft.azure.functions.annotation.*;
 import cloudnative.fitapp.domain.User;
 import cloudnative.fitapp.domain.Workout;
 import cloudnative.fitapp.dto.UpdatePasswordRequest;
-import cloudnative.fitapp.service.UserService;
+
 import java.util.List;
 import java.util.Optional;
 
 /**
- * Azure Functions for user management endpoints.
+ * Simplified user management functions.
  */
 public class UserFunctions extends BaseFunctionHandler {
 
@@ -21,7 +22,7 @@ public class UserFunctions extends BaseFunctionHandler {
     public HttpResponseMessage getAllUsers(
             @HttpTrigger(
                     name = "req",
-                    methods = {HttpMethod.GET},
+                    methods = {HttpMethod.GET, HttpMethod.OPTIONS},
                     route = "users",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<Optional<String>> request,
@@ -29,9 +30,13 @@ public class UserFunctions extends BaseFunctionHandler {
 
         context.getLogger().info("Getting all users");
 
+        if (request.getHttpMethod() == HttpMethod.OPTIONS) {
+            return handleCors(request);
+        }
+
         try {
             validateToken(request);
-            UserService userService = getBean(UserService.class);
+            UserService userService = serviceFactory.getUserService();
             List<User> users = userService.getAllUsers();
             return createResponse(request, users);
         } catch (Exception e) {
@@ -46,7 +51,7 @@ public class UserFunctions extends BaseFunctionHandler {
     public HttpResponseMessage getUserById(
             @HttpTrigger(
                     name = "req",
-                    methods = {HttpMethod.GET},
+                    methods = {HttpMethod.GET, HttpMethod.OPTIONS},
                     route = "users/{id}",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<Optional<String>> request,
@@ -55,13 +60,20 @@ public class UserFunctions extends BaseFunctionHandler {
 
         context.getLogger().info("Getting user by ID: " + id);
 
+        if (request.getHttpMethod() == HttpMethod.OPTIONS) {
+            return handleCors(request);
+        }
+
         try {
             validateToken(request);
-            UserService userService = getBean(UserService.class);
+
+            UserService userService = serviceFactory.getUserService();
             User user = userService.getUserById(id);
+
             if (user == null) {
                 return createErrorResponse(request, HttpStatus.NOT_FOUND, "User not found");
             }
+
             return createResponse(request, user);
         } catch (Exception e) {
             return handleException(request, e);
@@ -75,7 +87,7 @@ public class UserFunctions extends BaseFunctionHandler {
     public HttpResponseMessage getUserWorkouts(
             @HttpTrigger(
                     name = "req",
-                    methods = {HttpMethod.GET},
+                    methods = {HttpMethod.GET, HttpMethod.OPTIONS},
                     route = "users/{id}/workouts",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<Optional<String>> request,
@@ -84,38 +96,17 @@ public class UserFunctions extends BaseFunctionHandler {
 
         context.getLogger().info("Getting workouts for user: " + id);
 
-        try {
-            validateToken(request);
-            UserService userService = getBean(UserService.class);
-            List<Workout> workouts = userService.getAllWorkoutsForUser(id);
-            return createResponse(request, workouts);
-        } catch (Exception e) {
-            return handleException(request, e);
+        if (request.getHttpMethod() == HttpMethod.OPTIONS) {
+            return handleCors(request);
         }
-    }
-
-    /**
-     * Update user - PUT /api/users/{email}
-     */
-    @FunctionName("UpdateUser")
-    public HttpResponseMessage updateUser(
-            @HttpTrigger(
-                    name = "req",
-                    methods = {HttpMethod.PUT},
-                    route = "users/{email}",
-                    authLevel = AuthorizationLevel.ANONYMOUS)
-            HttpRequestMessage<String> request,
-            @BindingName("email") String email,
-            final ExecutionContext context) {
-
-        context.getLogger().info("Updating user: " + email);
 
         try {
             validateToken(request);
-            User user = parseBody(request, User.class);
-            UserService userService = getBean(UserService.class);
-            User updatedUser = userService.updateUser(email, user);
-            return createResponse(request, updatedUser);
+
+            UserService userService = serviceFactory.getUserService();
+            List<Workout> workouts = userService.getAllWorkoutsForUser(id);
+
+            return createResponse(request, workouts);
         } catch (Exception e) {
             return handleException(request, e);
         }
@@ -128,22 +119,42 @@ public class UserFunctions extends BaseFunctionHandler {
     public HttpResponseMessage updateStreakGoal(
             @HttpTrigger(
                     name = "req",
-                    methods = {HttpMethod.PUT},
+                    methods = {HttpMethod.PUT, HttpMethod.OPTIONS},
                     route = "users/{userId}/streakGoal/{streakGoal}",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<Optional<String>> request,
             @BindingName("userId") String userId,
-            @BindingName("streakGoal") Integer streakGoal,
+            @BindingName("streakGoal") String streakGoalStr,
             final ExecutionContext context) {
 
         context.getLogger().info("Updating streak goal for user: " + userId);
 
+        if (request.getHttpMethod() == HttpMethod.OPTIONS) {
+            return handleCors(request);
+        }
+
         try {
             validateToken(request);
-            UserService userService = getBean(UserService.class);
-            userService.updateStreakGoal(userId, streakGoal);
-            Integer newStreakGoal = userService.getUserById(userId).getStreakGoal();
-            return createResponse(request, newStreakGoal);
+
+            Integer streakGoal = Integer.parseInt(streakGoalStr);
+            if (streakGoal < 0 || streakGoal > 7) {
+                throw new IllegalArgumentException("Streak goal must be between 0 and 7");
+            }
+
+            // Find user
+            String query = String.format("SELECT * FROM c WHERE c.id = '%s'", userId);
+            List<User> users = cosmosDBService.query("users", query, User.class);
+
+            if (users.isEmpty()) {
+                return createErrorResponse(request, HttpStatus.NOT_FOUND, "User not found");
+            }
+
+            User user = users.get(0);
+            user.setStreakGoal(streakGoal);
+
+            cosmosDBService.update("users", user, user.getEmail(), User.class);
+
+            return createResponse(request, streakGoal);
         } catch (Exception e) {
             return handleException(request, e);
         }
@@ -156,7 +167,7 @@ public class UserFunctions extends BaseFunctionHandler {
     public HttpResponseMessage updateStreakProgress(
             @HttpTrigger(
                     name = "req",
-                    methods = {HttpMethod.PUT},
+                    methods = {HttpMethod.PUT, HttpMethod.OPTIONS},
                     route = "users/{userId}/streakProgress",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<Optional<String>> request,
@@ -165,12 +176,27 @@ public class UserFunctions extends BaseFunctionHandler {
 
         context.getLogger().info("Updating streak progress for user: " + userId);
 
+        if (request.getHttpMethod() == HttpMethod.OPTIONS) {
+            return handleCors(request);
+        }
+
         try {
             validateToken(request);
-            UserService userService = getBean(UserService.class);
-            userService.completedWorkout(userId);
-            Integer streakProgress = userService.getUserById(userId).getStreakProgress();
-            return createResponse(request, streakProgress);
+
+            // Find user
+            String query = String.format("SELECT * FROM c WHERE c.id = '%s'", userId);
+            List<User> users = cosmosDBService.query("users", query, User.class);
+
+            if (users.isEmpty()) {
+                return createErrorResponse(request, HttpStatus.NOT_FOUND, "User not found");
+            }
+
+            User user = users.get(0);
+            user.setStreakProgress(user.getStreakProgress() + 1);
+
+            cosmosDBService.update("users", user, user.getEmail(), User.class);
+
+            return createResponse(request, user.getStreakProgress());
         } catch (Exception e) {
             return handleException(request, e);
         }
@@ -183,7 +209,7 @@ public class UserFunctions extends BaseFunctionHandler {
     public HttpResponseMessage updatePassword(
             @HttpTrigger(
                     name = "req",
-                    methods = {HttpMethod.PUT},
+                    methods = {HttpMethod.PUT, HttpMethod.OPTIONS},
                     route = "users/{userId}/password",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<String> request,
@@ -192,15 +218,39 @@ public class UserFunctions extends BaseFunctionHandler {
 
         context.getLogger().info("Updating password for user: " + userId);
 
+        if (request.getHttpMethod() == HttpMethod.OPTIONS) {
+            return handleCors(request);
+        }
+
         try {
             validateToken(request);
-            UpdatePasswordRequest passwordRequest = parseBody(request, UpdatePasswordRequest.class);
-            UserService userService = getBean(UserService.class);
-            userService.updatePassword(userId,
-                    passwordRequest.getCurrentPassword(),
-                    passwordRequest.getNewPassword());
 
-            return request.createResponseBuilder(HttpStatus.OK).build();
+            UpdatePasswordRequest passwordRequest = parseBody(request, UpdatePasswordRequest.class);
+
+            // Find user
+            String query = String.format("SELECT * FROM c WHERE c.id = '%s'", userId);
+            List<User> users = cosmosDBService.query("users", query, User.class);
+
+            if (users.isEmpty()) {
+                return createErrorResponse(request, HttpStatus.NOT_FOUND, "User not found");
+            }
+
+            User user = users.get(0);
+
+            if (!passwordEncoder.matches(passwordRequest.getCurrentPassword(), user.getPassword())) {
+                throw new SecurityException("Current password is incorrect");
+            }
+
+            if (passwordRequest.getNewPassword().length() < 8) {
+                throw new IllegalArgumentException("New password must be at least 8 characters long");
+            }
+
+            user.setPassword(passwordEncoder.encode(passwordRequest.getNewPassword()));
+            cosmosDBService.update("users", user, user.getEmail(), User.class);
+
+            return request.createResponseBuilder(HttpStatus.OK)
+                    .header("Access-Control-Allow-Origin", "*")
+                    .build();
         } catch (Exception e) {
             return handleException(request, e);
         }

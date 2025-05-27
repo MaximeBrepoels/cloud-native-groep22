@@ -2,119 +2,129 @@ package cloudnative.fitapp.service;
 
 import cloudnative.fitapp.domain.User;
 import cloudnative.fitapp.domain.Workout;
-import cloudnative.fitapp.exception.UserServiceException;
-import cloudnative.fitapp.repository.UserRepository;
-import cloudnative.fitapp.repository.WorkoutRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
-@Service
+/**
+ * Pure Java User Service for Azure Functions (no Spring dependencies).
+ */
 public class UserService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final CosmosDBService cosmosDBService;
+    private final PasswordEncoder passwordEncoder;
 
-    @Autowired
-    private WorkoutRepository workoutRepository;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    public UserService(CosmosDBService cosmosDBService, PasswordEncoder passwordEncoder) {
+        this.cosmosDBService = cosmosDBService;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     public User createUser(String name, String email, String password) {
-        // Use the new method that returns a List
-        List<User> existingUsers = userRepository.findByEmail(email);
+        // Check if user already exists
+        String query = String.format("SELECT * FROM c WHERE c.email = '%s'", email);
+        List<User> existingUsers = cosmosDBService.query("users", query, User.class);
+
         if (!existingUsers.isEmpty()) {
             throw new IllegalArgumentException("Email is already in use");
         }
 
         User newUser = new User(name, email, password);
-        newUser.setId(String.valueOf(System.currentTimeMillis())); // Use String
-        return userRepository.save(newUser);
+        newUser.setId(String.valueOf(System.currentTimeMillis()));
+        return cosmosDBService.save("users", newUser, email, User.class);
     }
 
-    public User getUserById(String id) { // Use String
-        return userRepository.findById(id).orElse(null);
+    public User getUserById(String id) {
+        String query = String.format("SELECT * FROM c WHERE c.id = '%s'", id);
+        List<User> users = cosmosDBService.query("users", query, User.class);
+        return users.isEmpty() ? null : users.get(0);
     }
 
-    public boolean deleteUser(String id) { // Use String
-        if (userRepository.existsById(id)) {
-            userRepository.deleteById(id);
+    public User getUserByEmail(String email) {
+        String query = String.format("SELECT * FROM c WHERE c.email = '%s'", email);
+        List<User> users = cosmosDBService.query("users", query, User.class);
+        return users.isEmpty() ? null : users.get(0);
+    }
+
+    public boolean deleteUser(String id) {
+        User user = getUserById(id);
+        if (user != null) {
+            cosmosDBService.deleteById("users", id, user.getEmail());
             return true;
         }
         return false;
     }
 
-    public List<Workout> getAllWorkoutsForUser(String userId) { // Use String
+    public List<Workout> getAllWorkoutsForUser(String userId) {
         User user = getUserById(userId);
         if (user == null) {
-            throw new UserServiceException("User not found with ID: " + userId);
+            throw new RuntimeException("User not found with ID: " + userId);
         }
-        List<Workout> workouts = workoutRepository.findWorkoutsByUserId(userId);
-        return workouts;
+
+        String query = String.format("SELECT * FROM c WHERE c.userId = '%s'", userId);
+        return cosmosDBService.query("workouts", query, Workout.class);
     }
 
-    public void completedWorkout(String userId) { // Use String
+    public void completedWorkout(String userId) {
         User user = getUserById(userId);
         if (user == null) {
-            throw new UserServiceException("User not found with ID: " + userId);
+            throw new RuntimeException("User not found with ID: " + userId);
         }
         user.setStreakProgress(user.getStreakProgress() + 1);
-        userRepository.save(user);
+        cosmosDBService.update("users", user, user.getEmail(), User.class);
     }
 
-    public void updateStreakGoal(String userId, Integer streakGoal) { // Use String
+    public void updateStreakGoal(String userId, Integer streakGoal) {
         User user = getUserById(userId);
         if (user == null) {
-            throw new UserServiceException("User not found with ID: " + userId);
-        } else if (streakGoal < 0) {
-            throw new UserServiceException("Streak goal must be at least 0");
-        } else if (streakGoal > 7) {
-            throw new UserServiceException("Streak goal must be at most 7");
+            throw new RuntimeException("User not found with ID: " + userId);
+        }
+        if (streakGoal < 0 || streakGoal > 7) {
+            throw new RuntimeException("Streak goal must be between 0 and 7");
         }
         user.setStreakGoal(streakGoal);
-        userRepository.save(user);
+        cosmosDBService.update("users", user, user.getEmail(), User.class);
     }
 
-    public void updatePassword(String userId, String currentPassword, String newPassword) { // Use String
+    public void updatePassword(String userId, String currentPassword, String newPassword) {
         User user = getUserById(userId);
+        if (user == null) {
+            throw new RuntimeException("User not found with ID: " + userId);
+        }
+
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-            throw new UserServiceException("Current password is incorrect");
+            throw new RuntimeException("Current password is incorrect");
         }
         if (newPassword.length() < 8) {
-            throw new UserServiceException("New password must be at least 8 characters long");
+            throw new RuntimeException("New password must be at least 8 characters long");
         }
         user.setPassword(passwordEncoder.encode(newPassword));
-        userRepository.save(user);
-    }
-
-    public User getUserByEmail(String email) {
-        // Use the new method that returns a List
-        List<User> users = userRepository.findByEmail(email);
-        return users.isEmpty() ? null : users.get(0);
+        cosmosDBService.update("users", user, user.getEmail(), User.class);
     }
 
     public List<User> getAllUsers() {
-        return StreamSupport
-                .stream(userRepository.findAll().spliterator(), false)
-                .collect(Collectors.toList());
+        return cosmosDBService.findAll("users", User.class);
     }
 
     public User updateUser(String email, User updatedUser) {
-        // Use the new method that returns a List
-        List<User> existingUsers = userRepository.findByEmail(email);
+        List<User> existingUsers = cosmosDBService.query("users",
+                String.format("SELECT * FROM c WHERE c.email = '%s'", email), User.class);
+
         if (existingUsers.isEmpty()) {
-            throw new UserServiceException("User not found with email: " + email);
+            throw new RuntimeException("User not found with email: " + email);
         }
+
         User existingUser = existingUsers.get(0);
         existingUser.setName(updatedUser.getName());
-        existingUser.setPassword(updatedUser.getPassword());
-        existingUser.setStreakGoal(updatedUser.getStreakGoal());
-        existingUser.setStreakProgress(updatedUser.getStreakProgress());
-        return userRepository.save(existingUser);
+        if (updatedUser.getPassword() != null) {
+            existingUser.setPassword(updatedUser.getPassword());
+        }
+        if (updatedUser.getStreakGoal() != null) {
+            existingUser.setStreakGoal(updatedUser.getStreakGoal());
+        }
+        if (updatedUser.getStreakProgress() != null) {
+            existingUser.setStreakProgress(updatedUser.getStreakProgress());
+        }
+
+        return cosmosDBService.update("users", existingUser, existingUser.getEmail(), User.class);
     }
 }

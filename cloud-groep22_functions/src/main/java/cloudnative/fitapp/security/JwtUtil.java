@@ -3,19 +3,24 @@ package cloudnative.fitapp.security;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import cloudnative.fitapp.domain.User;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 
 import java.security.Key;
 import java.util.Date;
 
-@Component
+/**
+ * JWT utility class for Azure Functions (without Spring annotations).
+ */
 public class JwtUtil {
 
-    @Value("${jwt.secret.key:HeelGeheimeKeyDieEigenlijkInEenEnvZouMoetenStaan}")
-    private String secretKey;
-
+    private final String secretKey;
     private static final int TOKEN_VALIDITY = 3600 * 1000;
+
+    public JwtUtil() {
+        this.secretKey = System.getenv("JWT_SECRET_KEY");
+        if (this.secretKey == null || this.secretKey.isEmpty()) {
+            this.secretKey = "HeelGeheimeKeyDieEigenlijkInEenEnvZouMoetenStaan";
+        }
+    }
 
     private Key getSigningKey() {
         return Keys.hmacShaKeyFor(secretKey.getBytes());

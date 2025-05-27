@@ -1,13 +1,9 @@
 package cloudnative.fitapp.domain;
 
-import com.azure.spring.data.cosmos.core.mapping.Container;
-import com.azure.spring.data.cosmos.core.mapping.PartitionKey;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
-import org.springframework.data.annotation.Id;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
@@ -19,23 +15,14 @@ import java.util.List;
 @Getter
 @Setter
 @JsonIgnoreProperties(ignoreUnknown = true)
-@Container(containerName = "users")
 public class User {
 
-    @Id
     private String id;
-
     private String name;
-
-    @PartitionKey
     private String email;
-
     private String password;
-
     private List<String> workoutIds = new ArrayList<>();
-
     private List<Bodyweight> bodyweightList = new ArrayList<>();
-
     private Integer streakGoal = 0;
     private Integer streakProgress = 0;
     private Integer streak = 0;

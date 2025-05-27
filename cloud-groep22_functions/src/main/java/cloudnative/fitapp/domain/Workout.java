@@ -1,28 +1,20 @@
 package cloudnative.fitapp.domain;
 
-import com.azure.spring.data.cosmos.core.mapping.Container;
-import com.azure.spring.data.cosmos.core.mapping.PartitionKey;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
-import org.springframework.data.annotation.Id;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Getter
 @Setter
-@Container(containerName = "workouts")
 public class Workout {
-    @Id
+
     private String id;
-
-    @PartitionKey
     private String userId;
-
     private String name;
     private int rest;
-
     private List<Exercise> exercises = new ArrayList<>();
 
     @JsonIgnore
@@ -38,12 +30,10 @@ public class Workout {
         this.exercises = new ArrayList<>();
     }
 
-    // Fixed: just return the String id
     public String getId() {
         return id;
     }
 
-    // Fixed: accept String for id
     public void setId(String id) {
         this.id = id;
     }

@@ -13,14 +13,7 @@
     "version": "[3.*, 4.0.0)"
   },
   "functionTimeout": "00:10:00",
-  "customHandler": {
-    "description": {
-      "defaultExecutablePath": "java",
-      "workingDirectory": "",
-      "arguments": [
-        "-jar",
-        "fitapp-functions-1.0-SNAPSHOT.jar"
-      ]
-    }
+  "http": {
+    "routePrefix": "api"
   }
 }

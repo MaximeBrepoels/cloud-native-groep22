@@ -2,92 +2,84 @@ package cloudnative.fitapp.service;
 
 import cloudnative.fitapp.security.JwtUtil;
 import cloudnative.fitapp.domain.User;
-import cloudnative.fitapp.exception.AuthServiceException;
-import cloudnative.fitapp.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-@Service
+/**
+ * Pure Java Auth Service for Azure Functions (no Spring dependencies).
+ */
 public class AuthService {
 
-    @Autowired
-    private JwtUtil jwtUtil;
+    private final JwtUtil jwtUtil;
+    private final CosmosDBService cosmosDBService;
+    private final UserService userService;
+    private final PasswordEncoder passwordEncoder;
 
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private UserService userService;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    public AuthService(JwtUtil jwtUtil, CosmosDBService cosmosDBService,
+                       UserService userService, PasswordEncoder passwordEncoder) {
+        this.jwtUtil = jwtUtil;
+        this.cosmosDBService = cosmosDBService;
+        this.userService = userService;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     public String login(String email, String password) {
-        if (email == "" || password == "") {
-            throw new AuthServiceException("Email and password are required");
+        if (email == null || email.isEmpty() || password == null || password.isEmpty()) {
+            throw new RuntimeException("Email and password are required");
         }
 
-        // Use the new method that returns a List
-        List<User> users = userRepository.findByEmail(email);
+        String query = String.format("SELECT * FROM c WHERE c.email = '%s'", email);
+        List<User> users = cosmosDBService.query("users", query, User.class);
         User user = users.isEmpty() ? null : users.get(0);
 
         if (user == null) {
-            throw new AuthServiceException("User with email " + email + " not found");
-        } else {
-            // Debug logging
-            System.out.println("DEBUG: Raw password: " + password);
-            System.out.println("DEBUG: Stored password hash: " + user.getPassword());
-            System.out.println("DEBUG: Password matches: " + passwordEncoder.matches(password, user.getPassword()));
-
-            if (!passwordEncoder.matches(password, user.getPassword())) {
-                throw new AuthServiceException("Invalid password");
-            } else {
-                return jwtUtil.generateToken(user);
-            }
+            throw new RuntimeException("User with email " + email + " not found");
         }
+
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new RuntimeException("Invalid password");
+        }
+
+        return jwtUtil.generateToken(user);
     }
 
     public User register(String name, String email, String password) {
-
-        if (name == "" || email == "" || password == "") {
-            throw new AuthServiceException("Name, email, and password are required");
+        if (name == null || name.isEmpty() ||
+                email == null || email.isEmpty() ||
+                password == null || password.isEmpty()) {
+            throw new RuntimeException("Name, email, and password are required");
         }
 
         if (!name.matches("^[a-zA-Z ]+$")) {
-            throw new AuthServiceException("Name can only contain letters and spaces");
+            throw new RuntimeException("Name can only contain letters and spaces");
         }
 
-        // Use the new method that returns a List
-        List<User> existingUsers = userRepository.findByEmail(email);
+        String query = String.format("SELECT * FROM c WHERE c.email = '%s'", email);
+        List<User> existingUsers = cosmosDBService.query("users", query, User.class);
         if (!existingUsers.isEmpty()) {
-            throw new AuthServiceException("Email is already in use");
+            throw new RuntimeException("Email is already in use");
         }
 
         if (!email.matches("^[a-zA-Z0-9+_.-]+@[a-zA-Z0-9.-]+$")) {
-            throw new AuthServiceException("Invalid email format");
+            throw new RuntimeException("Invalid email format");
         }
 
         if (password.length() < 8) {
-            throw new AuthServiceException("Password must be at least 8 characters long");
+            throw new RuntimeException("Password must be at least 8 characters long");
         }
 
         if (!password.matches(".*[0-9].*")) {
-            throw new AuthServiceException("Password must contain at least one number");
-        } else if (!password.matches(".*[a-z].*")) {
-            throw new AuthServiceException("Password must contain at least one lowercase letter");
-        } else if (!password.matches(".*[A-Z].*")) {
-            throw new AuthServiceException("Password must contain at least one uppercase letter");
+            throw new RuntimeException("Password must contain at least one number");
+        }
+        if (!password.matches(".*[a-z].*")) {
+            throw new RuntimeException("Password must contain at least one lowercase letter");
+        }
+        if (!password.matches(".*[A-Z].*")) {
+            throw new RuntimeException("Password must contain at least one uppercase letter");
         }
 
         String encodedPassword = passwordEncoder.encode(password);
-
-        // Debug logging
-        System.out.println("DEBUG: Original password: " + password);
-        System.out.println("DEBUG: Encoded password: " + encodedPassword);
-
         return userService.createUser(name, email, encodedPassword);
     }
 }

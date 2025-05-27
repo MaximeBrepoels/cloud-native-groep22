@@ -1,62 +1,53 @@
 package cloudnative.fitapp.functions;
 
+import cloudnative.fitapp.service.ServiceFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.microsoft.azure.functions.HttpRequestMessage;
 import com.microsoft.azure.functions.HttpResponseMessage;
 import com.microsoft.azure.functions.HttpStatus;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
-import cloudnative.fitapp.config.FunctionConfiguration;
 import cloudnative.fitapp.security.JwtUtil;
-import cloudnative.fitapp.exception.AuthServiceException;
-import cloudnative.fitapp.exception.UserServiceException;
-import cloudnative.fitapp.exception.ExerciseServiceException;
-import cloudnative.fitapp.exception.WorkoutServiceException;
+import cloudnative.fitapp.service.CosmosDBService;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
 import java.util.logging.Logger;
 
 /**
- * Base class for all Azure Functions.
- * Handles Spring context initialization, JWT validation, and error handling.
+ * Simplified base class for all Azure Functions without Spring Boot dependency.
  */
 public abstract class BaseFunctionHandler {
 
-    protected static ApplicationContext context;
     protected static final Logger logger = Logger.getLogger(BaseFunctionHandler.class.getName());
+    protected static final ObjectMapper objectMapper = createObjectMapper();
+    protected static final ServiceFactory serviceFactory = ServiceFactory.getInstance();
 
-    static {
-        // Initialize Spring context once for all functions
-        if (context == null) {
-            context = new AnnotationConfigApplicationContext(FunctionConfiguration.class);
-        }
-    }
-
-    /**
-     * Get a Spring bean from the application context.
-     */
-    protected <T> T getBean(Class<T> clazz) {
-        return context.getBean(clazz);
+    private static ObjectMapper createObjectMapper() {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        return mapper;
     }
 
     /**
      * Validate JWT token from the Authorization header.
-     * Returns the email of the authenticated user.
      */
     protected String validateToken(HttpRequestMessage<?> request) {
         String authHeader = request.getHeaders().get("authorization");
+        if (authHeader == null) {
+            authHeader = request.getHeaders().get("Authorization");
+        }
+
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new AuthServiceException("Missing or invalid Authorization header");
+            throw new SecurityException("Missing or invalid Authorization header");
         }
 
         String token = authHeader.substring(7);
-        JwtUtil jwtUtil = getBean(JwtUtil.class);
-
-        if (!jwtUtil.validateToken(token)) {
-            throw new AuthServiceException("Invalid token");
+        if (!serviceFactory.getJwtUtil().validateToken(token)) {
+            throw new SecurityException("Invalid token");
         }
 
-        return jwtUtil.extractEmail(token);
+        return serviceFactory.getJwtUtil().extractEmail(token);
     }
 
     /**
@@ -64,9 +55,8 @@ public abstract class BaseFunctionHandler {
      */
     protected <T> T parseBody(HttpRequestMessage<?> request, Class<T> clazz) {
         try {
-            ObjectMapper mapper = getBean(ObjectMapper.class);
             String body = request.getBody().toString();
-            return mapper.readValue(body, clazz);
+            return objectMapper.readValue(body, clazz);
         } catch (Exception e) {
             throw new IllegalArgumentException("Invalid request body: " + e.getMessage());
         }
@@ -77,10 +67,12 @@ public abstract class BaseFunctionHandler {
      */
     protected HttpResponseMessage createResponse(HttpRequestMessage<?> request, Object body) {
         try {
-            ObjectMapper mapper = getBean(ObjectMapper.class);
-            String json = mapper.writeValueAsString(body);
+            String json = objectMapper.writeValueAsString(body);
             return request.createResponseBuilder(HttpStatus.OK)
                     .header("Content-Type", "application/json")
+                    .header("Access-Control-Allow-Origin", "*")
+                    .header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+                    .header("Access-Control-Allow-Headers", "Content-Type, Authorization")
                     .body(json)
                     .build();
         } catch (Exception e) {
@@ -96,7 +88,10 @@ public abstract class BaseFunctionHandler {
                                                       HttpStatus status, String message) {
         return request.createResponseBuilder(status)
                 .header("Content-Type", "application/json")
-                .body("{\"error\":\"" + message + "\"}")
+                .header("Access-Control-Allow-Origin", "*")
+                .header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+                .header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+                .body("{\"error\":\"" + message.replace("\"", "\\\"") + "\"}")
                 .build();
     }
 
@@ -105,11 +100,9 @@ public abstract class BaseFunctionHandler {
      */
     protected HttpResponseMessage handleException(HttpRequestMessage<?> request, Exception e) {
         logger.severe("Error processing request: " + e.getMessage());
+        e.printStackTrace();
 
-        if (e instanceof AuthServiceException ||
-                e instanceof UserServiceException ||
-                e instanceof ExerciseServiceException ||
-                e instanceof WorkoutServiceException) {
+        if (e instanceof SecurityException) {
             return createErrorResponse(request, HttpStatus.UNAUTHORIZED, e.getMessage());
         } else if (e instanceof IllegalArgumentException) {
             return createErrorResponse(request, HttpStatus.BAD_REQUEST, e.getMessage());
@@ -120,20 +113,20 @@ public abstract class BaseFunctionHandler {
     }
 
     /**
-     * Get path parameter from request.
-     */
-    protected String getPathParam(HttpRequestMessage<?> request, String paramName) {
-        String value = request.getQueryParameters().get(paramName);
-        if (value == null || value.isEmpty()) {
-            throw new IllegalArgumentException("Missing required parameter: " + paramName);
-        }
-        return value;
-    }
-
-    /**
      * Get optional query parameter from request.
      */
     protected Optional<String> getQueryParam(HttpRequestMessage<?> request, String paramName) {
         return Optional.ofNullable(request.getQueryParameters().get(paramName));
+    }
+
+    /**
+     * Handle CORS preflight requests.
+     */
+    protected HttpResponseMessage handleCors(HttpRequestMessage<?> request) {
+        return request.createResponseBuilder(HttpStatus.OK)
+                .header("Access-Control-Allow-Origin", "*")
+                .header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+                .header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+                .build();
     }
 }
