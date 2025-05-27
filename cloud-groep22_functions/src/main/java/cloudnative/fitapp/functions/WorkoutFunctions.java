@@ -5,7 +5,6 @@ import com.microsoft.azure.functions.annotation.*;
 import cloudnative.fitapp.domain.Exercise;
 import cloudnative.fitapp.domain.User;
 import cloudnative.fitapp.domain.Workout;
-import com.fasterxml.jackson.databind.JsonNode;
 
 import java.util.List;
 import java.util.Optional;
@@ -16,14 +15,14 @@ import java.util.Optional;
 public class WorkoutFunctions extends BaseFunctionHandler {
 
     /**
-     * Create workout - POST /api/workouts?userId={userId}
+     * Create workout - POST /api/workouts/create?userId={userId}
      */
     @FunctionName("CreateWorkout")
     public HttpResponseMessage createWorkout(
             @HttpTrigger(
                     name = "req",
                     methods = {HttpMethod.POST, HttpMethod.OPTIONS},
-                    route = "workouts",
+                    route = "workouts/create",  // Changed from "workouts"
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<String> request,
             final ExecutionContext context) {
@@ -74,14 +73,14 @@ public class WorkoutFunctions extends BaseFunctionHandler {
     }
 
     /**
-     * Get all workouts - GET /api/workouts
+     * Get all workouts - GET /api/workouts/all
      */
     @FunctionName("GetAllWorkouts")
     public HttpResponseMessage getAllWorkouts(
             @HttpTrigger(
                     name = "req",
                     methods = {HttpMethod.GET, HttpMethod.OPTIONS},
-                    route = "workouts",
+                    route = "workouts/all",  // Changed from "workouts"
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<Optional<String>> request,
             final ExecutionContext context) {
@@ -102,14 +101,14 @@ public class WorkoutFunctions extends BaseFunctionHandler {
     }
 
     /**
-     * Get workout by ID - GET /api/workouts/{id}
+     * Get workout by ID - GET /api/workouts/byId/{id}
      */
     @FunctionName("GetWorkoutById")
     public HttpResponseMessage getWorkoutById(
             @HttpTrigger(
                     name = "req",
                     methods = {HttpMethod.GET, HttpMethod.OPTIONS},
-                    route = "workouts/{id}",
+                    route = "workouts/byId/{id}",  // Changed from "workouts/{id}"
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<Optional<String>> request,
             @BindingName("id") String id,
@@ -170,14 +169,14 @@ public class WorkoutFunctions extends BaseFunctionHandler {
     }
 
     /**
-     * Delete workout - DELETE /api/workouts/{id}
+     * Delete workout - DELETE /api/workouts/delete/{id}
      */
     @FunctionName("DeleteWorkout")
     public HttpResponseMessage deleteWorkout(
             @HttpTrigger(
                     name = "req",
                     methods = {HttpMethod.DELETE, HttpMethod.OPTIONS},
-                    route = "workouts/{id}",
+                    route = "workouts/delete/{id}",  // Changed from "workouts/{id}"
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<Optional<String>> request,
             @BindingName("id") String id,

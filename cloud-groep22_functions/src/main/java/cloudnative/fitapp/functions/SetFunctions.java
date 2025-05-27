@@ -60,7 +60,7 @@ public class SetFunctions extends BaseFunctionHandler {
             @HttpTrigger(
                     name = "req",
                     methods = {HttpMethod.GET, HttpMethod.OPTIONS},
-                    route = "sets/{id}",
+                    route = "sets/byId/{id}",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<Optional<String>> request,
             @BindingName("id") String id,
@@ -140,7 +140,7 @@ public class SetFunctions extends BaseFunctionHandler {
             @HttpTrigger(
                     name = "req",
                     methods = {HttpMethod.PUT, HttpMethod.OPTIONS},
-                    route = "sets/{id}",
+                    route = "sets/update/{id}",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<String> request,
             @BindingName("id") String id,
@@ -178,7 +178,7 @@ public class SetFunctions extends BaseFunctionHandler {
             @HttpTrigger(
                     name = "req",
                     methods = {HttpMethod.DELETE, HttpMethod.OPTIONS},
-                    route = "sets/{id}",
+                    route = "sets/delete/{id}",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<Optional<String>> request,
             @BindingName("id") String id,
