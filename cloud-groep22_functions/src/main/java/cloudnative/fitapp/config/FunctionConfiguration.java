@@ -18,27 +18,10 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 @ComponentScan(basePackages = "cloudnative.fitapp")
 public class FunctionConfiguration {
 
-    /**
-     * Main method to start Spring Boot application context.
-     * In Azure Functions, this is called once during cold start.
-     */
     public static void main(String[] args) {
         SpringApplication.run(FunctionConfiguration.class, args);
     }
 
-    /**
-     * Password encoder bean for encrypting user passwords.
-     * We use BCrypt for secure password hashing.
-     */
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
-
-    /**
-     * ObjectMapper bean configured for proper JSON serialization.
-     * This ensures dates and other objects are serialized correctly.
-     */
     @Bean
     public ObjectMapper objectMapper() {
         ObjectMapper mapper = new ObjectMapper();
