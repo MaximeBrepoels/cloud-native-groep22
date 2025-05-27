@@ -4,6 +4,7 @@ import com.azure.spring.data.cosmos.core.mapping.Container;
 import com.azure.spring.data.cosmos.core.mapping.PartitionKey;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.Id;
@@ -29,7 +30,6 @@ public class User {
     @PartitionKey
     private String email;
 
-    @JsonIgnore
     private String password;
 
     private List<String> workoutIds = new ArrayList<>();
@@ -39,7 +39,6 @@ public class User {
     private Integer streakGoal = 0;
     private Integer streakProgress = 0;
     private Integer streak = 0;
-
 
     public User() {
     }
@@ -52,6 +51,8 @@ public class User {
         this.bodyweightList = new ArrayList<>();
     }
 
+    // Don't store authorities in the database - generate them when needed
+    @JsonIgnore
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
     }

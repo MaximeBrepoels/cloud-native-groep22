@@ -36,10 +36,17 @@ public class AuthService {
 
         if (user == null) {
             throw new AuthServiceException("User with email " + email + " not found");
-        } else if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new AuthServiceException("Invalid password");
         } else {
-            return jwtUtil.generateToken(user);
+            // Debug logging
+            System.out.println("DEBUG: Raw password: " + password);
+            System.out.println("DEBUG: Stored password hash: " + user.getPassword());
+            System.out.println("DEBUG: Password matches: " + passwordEncoder.matches(password, user.getPassword()));
+
+            if (!passwordEncoder.matches(password, user.getPassword())) {
+                throw new AuthServiceException("Invalid password");
+            } else {
+                return jwtUtil.generateToken(user);
+            }
         }
     }
 
@@ -76,6 +83,10 @@ public class AuthService {
         }
 
         String encodedPassword = passwordEncoder.encode(password);
+
+        // Debug logging
+        System.out.println("DEBUG: Original password: " + password);
+        System.out.println("DEBUG: Encoded password: " + encodedPassword);
 
         return userService.createUser(name, email, encodedPassword);
     }
