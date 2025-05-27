@@ -1,5 +1,6 @@
 package cloudnative.fitapp.functions;
 
+import cloudnative.fitapp.security.SimplePasswordEncoder;
 import com.microsoft.azure.functions.*;
 import com.microsoft.azure.functions.annotation.*;
 import cloudnative.fitapp.domain.Set;
@@ -7,7 +8,7 @@ import cloudnative.fitapp.service.SetService;
 import cloudnative.fitapp.service.ExerciseService;
 import cloudnative.fitapp.service.WorkoutService;
 import cloudnative.fitapp.service.UserService;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import cloudnative.fitapp.security.SimplePasswordEncoder;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,7 +40,7 @@ public class SetFunctions extends BaseFunctionHandler {
             validateToken(request);
 
             // Create services
-            BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+            SimplePasswordEncoder passwordEncoder = new SimplePasswordEncoder();
             UserService userService = new UserService(cosmosDBService, passwordEncoder);
             WorkoutService workoutService = new WorkoutService(cosmosDBService, userService);
             ExerciseService exerciseService = new ExerciseService(cosmosDBService, workoutService);
@@ -76,7 +77,7 @@ public class SetFunctions extends BaseFunctionHandler {
             validateToken(request);
 
             // Create services
-            BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+            SimplePasswordEncoder passwordEncoder = new SimplePasswordEncoder();
             UserService userService = new UserService(cosmosDBService, passwordEncoder);
             WorkoutService workoutService = new WorkoutService(cosmosDBService, userService);
             ExerciseService exerciseService = new ExerciseService(cosmosDBService, workoutService);
@@ -119,7 +120,7 @@ public class SetFunctions extends BaseFunctionHandler {
             Set set = parseBody(request, Set.class);
 
             // Create services
-            BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+            SimplePasswordEncoder passwordEncoder = new SimplePasswordEncoder();
             UserService userService = new UserService(cosmosDBService, passwordEncoder);
             WorkoutService workoutService = new WorkoutService(cosmosDBService, userService);
             ExerciseService exerciseService = new ExerciseService(cosmosDBService, workoutService);
@@ -157,7 +158,7 @@ public class SetFunctions extends BaseFunctionHandler {
             Set set = parseBody(request, Set.class);
 
             // Create services
-            BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+            SimplePasswordEncoder passwordEncoder = new SimplePasswordEncoder();
             UserService userService = new UserService(cosmosDBService, passwordEncoder);
             WorkoutService workoutService = new WorkoutService(cosmosDBService, userService);
             ExerciseService exerciseService = new ExerciseService(cosmosDBService, workoutService);
@@ -194,7 +195,7 @@ public class SetFunctions extends BaseFunctionHandler {
             validateToken(request);
 
             // Create services
-            BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+            SimplePasswordEncoder passwordEncoder = new SimplePasswordEncoder();
             UserService userService = new UserService(cosmosDBService, passwordEncoder);
             WorkoutService workoutService = new WorkoutService(cosmosDBService, userService);
             ExerciseService exerciseService = new ExerciseService(cosmosDBService, workoutService);

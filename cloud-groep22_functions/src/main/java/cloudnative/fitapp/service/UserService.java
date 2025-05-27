@@ -2,47 +2,76 @@ package cloudnative.fitapp.service;
 
 import cloudnative.fitapp.domain.User;
 import cloudnative.fitapp.domain.Workout;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import cloudnative.fitapp.security.SimplePasswordEncoder;
 
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * Pure Java User Service for Azure Functions (no Spring dependencies).
  */
 public class UserService {
 
+    private static final Logger logger = Logger.getLogger(UserService.class.getName());
     private final CosmosDBService cosmosDBService;
-    private final PasswordEncoder passwordEncoder;
+    private final SimplePasswordEncoder passwordEncoder;
 
-    public UserService(CosmosDBService cosmosDBService, PasswordEncoder passwordEncoder) {
+    public UserService(CosmosDBService cosmosDBService, SimplePasswordEncoder passwordEncoder) {
         this.cosmosDBService = cosmosDBService;
         this.passwordEncoder = passwordEncoder;
     }
 
     public User createUser(String name, String email, String password) {
-        // Check if user already exists
-        String query = String.format("SELECT * FROM c WHERE c.email = '%s'", email);
-        List<User> existingUsers = cosmosDBService.query("users", query, User.class);
+        try {
+            logger.info("Creating user with email: " + email);
 
-        if (!existingUsers.isEmpty()) {
-            throw new IllegalArgumentException("Email is already in use");
+            // Check if user already exists
+            String query = String.format("SELECT * FROM c WHERE c.email = '%s'", email);
+            logger.info("Checking for existing user with query: " + query);
+
+            List<User> existingUsers = cosmosDBService.query("users", query, User.class);
+            logger.info("Existing users found: " + existingUsers.size());
+
+            if (!existingUsers.isEmpty()) {
+                logger.warning("User already exists with email: " + email);
+                throw new IllegalArgumentException("Email is already in use");
+            }
+
+            User newUser = new User(name, email, password);
+            newUser.setId(String.valueOf(System.currentTimeMillis()));
+            logger.info("Created user object with ID: " + newUser.getId());
+
+            User savedUser = cosmosDBService.save("users", newUser, email, User.class);
+            logger.info("Saved user to database: " + (savedUser != null ? savedUser.getId() : "null"));
+
+            return savedUser;
+        } catch (Exception e) {
+            logger.severe("Error creating user: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to create user: " + e.getMessage(), e);
         }
-
-        User newUser = new User(name, email, password);
-        newUser.setId(String.valueOf(System.currentTimeMillis()));
-        return cosmosDBService.save("users", newUser, email, User.class);
     }
 
     public User getUserById(String id) {
-        String query = String.format("SELECT * FROM c WHERE c.id = '%s'", id);
-        List<User> users = cosmosDBService.query("users", query, User.class);
-        return users.isEmpty() ? null : users.get(0);
+        try {
+            String query = String.format("SELECT * FROM c WHERE c.id = '%s'", id);
+            List<User> users = cosmosDBService.query("users", query, User.class);
+            return users.isEmpty() ? null : users.get(0);
+        } catch (Exception e) {
+            logger.severe("Error getting user by ID: " + e.getMessage());
+            return null;
+        }
     }
 
     public User getUserByEmail(String email) {
-        String query = String.format("SELECT * FROM c WHERE c.email = '%s'", email);
-        List<User> users = cosmosDBService.query("users", query, User.class);
-        return users.isEmpty() ? null : users.get(0);
+        try {
+            String query = String.format("SELECT * FROM c WHERE c.email = '%s'", email);
+            List<User> users = cosmosDBService.query("users", query, User.class);
+            return users.isEmpty() ? null : users.get(0);
+        } catch (Exception e) {
+            logger.severe("Error getting user by email: " + e.getMessage());
+            return null;
+        }
     }
 
     public boolean deleteUser(String id) {

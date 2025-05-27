@@ -2,7 +2,7 @@ package cloudnative.fitapp.service;
 
 import cloudnative.fitapp.security.JwtUtil;
 import cloudnative.fitapp.domain.User;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import cloudnative.fitapp.security.SimplePasswordEncoder;
 
 import java.util.List;
 
@@ -14,10 +14,10 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final CosmosDBService cosmosDBService;
     private final UserService userService;
-    private final PasswordEncoder passwordEncoder;
+    private final SimplePasswordEncoder passwordEncoder;
 
     public AuthService(JwtUtil jwtUtil, CosmosDBService cosmosDBService,
-                       UserService userService, PasswordEncoder passwordEncoder) {
+                       UserService userService, SimplePasswordEncoder passwordEncoder) {
         this.jwtUtil = jwtUtil;
         this.cosmosDBService = cosmosDBService;
         this.userService = userService;

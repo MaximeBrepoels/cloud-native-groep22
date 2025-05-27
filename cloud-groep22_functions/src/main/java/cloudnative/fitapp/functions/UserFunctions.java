@@ -6,7 +6,7 @@ import com.microsoft.azure.functions.annotation.*;
 import cloudnative.fitapp.domain.User;
 import cloudnative.fitapp.domain.Workout;
 import cloudnative.fitapp.dto.UpdatePasswordRequest;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import cloudnative.fitapp.security.SimplePasswordEncoder; // Changed import
 
 import java.util.List;
 import java.util.Optional;
@@ -38,7 +38,7 @@ public class UserFunctions extends BaseFunctionHandler {
         try {
             validateToken(request);
 
-            BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+            SimplePasswordEncoder passwordEncoder = new SimplePasswordEncoder(); // Changed
             UserService userService = new UserService(cosmosDBService, passwordEncoder);
             List<User> users = userService.getAllUsers();
 
@@ -71,7 +71,7 @@ public class UserFunctions extends BaseFunctionHandler {
         try {
             validateToken(request);
 
-            BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+            SimplePasswordEncoder passwordEncoder = new SimplePasswordEncoder(); // Changed
             UserService userService = new UserService(cosmosDBService, passwordEncoder);
             User user = userService.getUserById(id);
 
@@ -108,7 +108,7 @@ public class UserFunctions extends BaseFunctionHandler {
         try {
             validateToken(request);
 
-            BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+            SimplePasswordEncoder passwordEncoder = new SimplePasswordEncoder(); // Changed
             UserService userService = new UserService(cosmosDBService, passwordEncoder);
             List<Workout> workouts = userService.getAllWorkoutsForUser(id);
 
@@ -147,7 +147,7 @@ public class UserFunctions extends BaseFunctionHandler {
                 throw new IllegalArgumentException("Streak goal must be between 0 and 7");
             }
 
-            BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+            SimplePasswordEncoder passwordEncoder = new SimplePasswordEncoder(); // Changed
             UserService userService = new UserService(cosmosDBService, passwordEncoder);
             userService.updateStreakGoal(userId, streakGoal);
 
@@ -183,7 +183,7 @@ public class UserFunctions extends BaseFunctionHandler {
         try {
             validateToken(request);
 
-            BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+            SimplePasswordEncoder passwordEncoder = new SimplePasswordEncoder(); // Changed
             UserService userService = new UserService(cosmosDBService, passwordEncoder);
             userService.completedWorkout(userId);
 
@@ -221,7 +221,7 @@ public class UserFunctions extends BaseFunctionHandler {
 
             UpdatePasswordRequest passwordRequest = parseBody(request, UpdatePasswordRequest.class);
 
-            BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+            SimplePasswordEncoder passwordEncoder = new SimplePasswordEncoder(); // Changed
             UserService userService = new UserService(cosmosDBService, passwordEncoder);
 
             userService.updatePassword(userId,

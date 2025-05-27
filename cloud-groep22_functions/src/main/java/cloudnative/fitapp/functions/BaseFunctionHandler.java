@@ -26,10 +26,15 @@ public abstract class BaseFunctionHandler {
     static {
         try {
             cosmosDBService = CosmosDBService.getInstance();
+
+            // Ensure containers exist
+            cosmosDBService.ensureContainersExist();
+
             jwtUtil = new JwtUtil();
             logger.info("Services initialized successfully");
         } catch (Exception e) {
             logger.severe("Failed to initialize services: " + e.getMessage());
+            e.printStackTrace();
             throw new RuntimeException("Service initialization failed", e);
         }
     }
@@ -39,6 +44,8 @@ public abstract class BaseFunctionHandler {
         mapper.registerModule(new JavaTimeModule());
         return mapper;
     }
+
+    // ... rest of the methods remain the same
 
     /**
      * Validate JWT token from the Authorization header.
