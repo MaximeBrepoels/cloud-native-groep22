@@ -5,12 +5,53 @@ Monorepo for FitApp:
 - `cloud-groep22_backend/`: Java Spring Boot backend (Maven)
 - `cloud-groep22_frontend/`: Next.js frontend (TypeScript)
 
-## Development
+## Development Setup
 
-- Start backend: `cd cloud-groep22_backend && ./mvnw spring-boot:run`
-- Start frontend: `cd cloud-groep22_frontend && npm run dev`
+### 1. Configure Azure Cosmos DB Environment Variables
 
-## Unified Start
+Before running the backend, set the following environment variables in your terminal:
 
-- `npm install` (at root, after adding root `package.json`)
-- `npm run start:all`
+```bash
+export AZURE_COSMOS_URI="contact me for the uri"
+export AZURE_COSMOS_KEY="contact me for the key"
+export AZURE_COSMOS_DATABASE_NAME="cloud-native-groep22-db"
+
+echo "URI: $AZURE_COSMOS_URI"
+echo "KEY: $AZURE_COSMOS_KEY"
+echo "DB: $AZURE_COSMOS_DATABASE_NAME"
+```
+
+### 2. Start the Backend
+
+- For cleanup operations (optional):
+
+  ```bash
+  ./mvnw spring-boot:run -Dspring-boot.run.profiles=cleanup
+  ```
+
+- To start the backend normally:
+
+  ```bash
+  ./mvnw spring-boot:run
+  ```
+
+### 3. Start the Frontend
+
+```bash
+cd cloud-groep22_frontend
+npm run dev
+```
+
+## Unified Start (if using a root package.json)
+
+- Install dependencies at the root:
+
+  ```bash
+  npm install
+  ```
+
+- Start all services:
+
+  ```bash
+  npm run start:all
+  ```
