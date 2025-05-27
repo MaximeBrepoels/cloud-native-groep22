@@ -1,6 +1,5 @@
 package cloudnative.fitapp.functions;
 
-import cloudnative.fitapp.service.ServiceFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.microsoft.azure.functions.HttpRequestMessage;
@@ -8,20 +7,32 @@ import com.microsoft.azure.functions.HttpResponseMessage;
 import com.microsoft.azure.functions.HttpStatus;
 import cloudnative.fitapp.security.JwtUtil;
 import cloudnative.fitapp.service.CosmosDBService;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
 import java.util.logging.Logger;
 
 /**
- * Simplified base class for all Azure Functions without Spring Boot dependency.
+ * Base class for Azure Functions with proper implementations.
  */
 public abstract class BaseFunctionHandler {
 
     protected static final Logger logger = Logger.getLogger(BaseFunctionHandler.class.getName());
     protected static final ObjectMapper objectMapper = createObjectMapper();
-    protected static final ServiceFactory serviceFactory = ServiceFactory.getInstance();
+
+    // Initialize services as static to reuse across function invocations
+    protected static CosmosDBService cosmosDBService;
+    protected static JwtUtil jwtUtil;
+
+    static {
+        try {
+            cosmosDBService = CosmosDBService.getInstance();
+            jwtUtil = new JwtUtil();
+            logger.info("Services initialized successfully");
+        } catch (Exception e) {
+            logger.severe("Failed to initialize services: " + e.getMessage());
+            throw new RuntimeException("Service initialization failed", e);
+        }
+    }
 
     private static ObjectMapper createObjectMapper() {
         ObjectMapper mapper = new ObjectMapper();
@@ -43,11 +54,11 @@ public abstract class BaseFunctionHandler {
         }
 
         String token = authHeader.substring(7);
-        if (!serviceFactory.getJwtUtil().validateToken(token)) {
+        if (!jwtUtil.validateToken(token)) {
             throw new SecurityException("Invalid token");
         }
 
-        return serviceFactory.getJwtUtil().extractEmail(token);
+        return jwtUtil.extractEmail(token);
     }
 
     /**
@@ -56,8 +67,10 @@ public abstract class BaseFunctionHandler {
     protected <T> T parseBody(HttpRequestMessage<?> request, Class<T> clazz) {
         try {
             String body = request.getBody().toString();
+            logger.info("Parsing body: " + body);
             return objectMapper.readValue(body, clazz);
         } catch (Exception e) {
+            logger.severe("Error parsing body: " + e.getMessage());
             throw new IllegalArgumentException("Invalid request body: " + e.getMessage());
         }
     }
@@ -65,10 +78,10 @@ public abstract class BaseFunctionHandler {
     /**
      * Create a success response with JSON body.
      */
-    protected HttpResponseMessage createResponse(HttpRequestMessage<?> request, Object body) {
+    protected HttpResponseMessage createJsonResponse(HttpRequestMessage<?> request, Object body, HttpStatus status) {
         try {
             String json = objectMapper.writeValueAsString(body);
-            return request.createResponseBuilder(HttpStatus.OK)
+            return request.createResponseBuilder(status)
                     .header("Content-Type", "application/json")
                     .header("Access-Control-Allow-Origin", "*")
                     .header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
@@ -76,9 +89,14 @@ public abstract class BaseFunctionHandler {
                     .body(json)
                     .build();
         } catch (Exception e) {
+            logger.severe("Error serializing response: " + e.getMessage());
             return createErrorResponse(request, HttpStatus.INTERNAL_SERVER_ERROR,
                     "Error serializing response");
         }
+    }
+
+    protected HttpResponseMessage createJsonResponse(HttpRequestMessage<?> request, Object body) {
+        return createJsonResponse(request, body, HttpStatus.OK);
     }
 
     /**
@@ -108,7 +126,7 @@ public abstract class BaseFunctionHandler {
             return createErrorResponse(request, HttpStatus.BAD_REQUEST, e.getMessage());
         } else {
             return createErrorResponse(request, HttpStatus.INTERNAL_SERVER_ERROR,
-                    "An unexpected error occurred");
+                    "An unexpected error occurred: " + e.getMessage());
         }
     }
 

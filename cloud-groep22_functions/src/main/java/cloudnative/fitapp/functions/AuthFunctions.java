@@ -1,24 +1,27 @@
 package cloudnative.fitapp.functions;
 
-import cloudnative.fitapp.service.AuthService;
-import cloudnative.fitapp.service.UserService;
 import com.microsoft.azure.functions.*;
 import com.microsoft.azure.functions.annotation.*;
 import cloudnative.fitapp.domain.User;
 import cloudnative.fitapp.dto.*;
+import cloudnative.fitapp.service.AuthService;
+import cloudnative.fitapp.service.UserService;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.util.List;
-import java.util.Optional;
+import java.util.logging.Logger;
 
 /**
- * Simplified authentication functions without Spring Boot dependency.
+ * Authentication functions for Azure Functions.
  */
 public class AuthFunctions extends BaseFunctionHandler {
+
+    private static final Logger logger = Logger.getLogger(AuthFunctions.class.getName());
 
     /**
      * Login function - POST /api/auth/login
      */
-    @FunctionName("AuthLogin")
+    @FunctionName("Login")
     public HttpResponseMessage login(
             @HttpTrigger(
                     name = "req",
@@ -43,16 +46,23 @@ public class AuthFunctions extends BaseFunctionHandler {
                 throw new IllegalArgumentException("Email and password are required");
             }
 
-            AuthService authService = serviceFactory.getAuthService();
-            UserService userService = serviceFactory.getUserService();
+            // Create services directly instead of using factory pattern
+            BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+            UserService userService = new UserService(cosmosDBService, passwordEncoder);
+            AuthService authService = new AuthService(jwtUtil, cosmosDBService, userService, passwordEncoder);
 
             String token = authService.login(loginRequest.getEmail(), loginRequest.getPassword());
             User user = userService.getUserByEmail(loginRequest.getEmail());
-            AuthResponse response = new AuthResponse(token, user.getId());
 
-            return createResponse(request, response);
+            if (user == null) {
+                throw new RuntimeException("User not found after successful login");
+            }
+
+            AuthResponse response = new AuthResponse(token, user.getId());
+            return createJsonResponse(request, response);
 
         } catch (Exception e) {
+            context.getLogger().severe("Login error: " + e.getMessage());
             return handleException(request, e);
         }
     }
@@ -60,7 +70,7 @@ public class AuthFunctions extends BaseFunctionHandler {
     /**
      * Register function - POST /api/auth/register
      */
-    @FunctionName("AuthRegister")
+    @FunctionName("Register")
     public HttpResponseMessage register(
             @HttpTrigger(
                     name = "req",
@@ -80,17 +90,22 @@ public class AuthFunctions extends BaseFunctionHandler {
         try {
             RegisterRequest registerRequest = parseBody(request, RegisterRequest.class);
 
-            AuthService authService = serviceFactory.getAuthService();
+            // Create services directly
+            BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+            UserService userService = new UserService(cosmosDBService, passwordEncoder);
+            AuthService authService = new AuthService(jwtUtil, cosmosDBService, userService, passwordEncoder);
+
             User user = authService.register(
                     registerRequest.getName(),
                     registerRequest.getEmail(),
                     registerRequest.getPassword()
             );
-            UserResponse response = new UserResponse(user);
 
-            return createResponse(request, response);
+            UserResponse response = new UserResponse(user);
+            return createJsonResponse(request, response, HttpStatus.CREATED);
 
         } catch (Exception e) {
+            context.getLogger().severe("Registration error: " + e.getMessage());
             return handleException(request, e);
         }
     }
