@@ -12,6 +12,7 @@
     <option name="originalFiles">
       <list>
         <option value="$PROJECT_DIR$/cloud-groep22_backend/pom.xml" />
+        <option value="$PROJECT_DIR$/cloud-groep22_functions/pom.xml" />
       </list>
     </option>
   </component>
