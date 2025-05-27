@@ -42,7 +42,7 @@ public class UserFunctions extends BaseFunctionHandler {
             UserService userService = new UserService(cosmosDBService, passwordEncoder);
             List<User> users = userService.getAllUsers();
 
-            return createJsonResponse(request, users);
+            return createResponse(request, users);
         } catch (Exception e) {
             return handleException(request, e);
         }
@@ -79,7 +79,7 @@ public class UserFunctions extends BaseFunctionHandler {
                 return createErrorResponse(request, HttpStatus.NOT_FOUND, "User not found");
             }
 
-            return createJsonResponse(request, user);
+            return createResponse(request, user);
         } catch (Exception e) {
             return handleException(request, e);
         }
@@ -112,7 +112,7 @@ public class UserFunctions extends BaseFunctionHandler {
             UserService userService = new UserService(cosmosDBService, passwordEncoder);
             List<Workout> workouts = userService.getAllWorkoutsForUser(id);
 
-            return createJsonResponse(request, workouts);
+            return createResponse(request, workouts);
         } catch (Exception e) {
             return handleException(request, e);
         }
@@ -153,7 +153,7 @@ public class UserFunctions extends BaseFunctionHandler {
 
             // Return the updated streak goal
             User user = userService.getUserById(userId);
-            return createJsonResponse(request, user.getStreakGoal());
+            return createResponse(request, user.getStreakGoal());
 
         } catch (Exception e) {
             return handleException(request, e);
@@ -189,7 +189,7 @@ public class UserFunctions extends BaseFunctionHandler {
 
             // Return the updated streak progress
             User user = userService.getUserById(userId);
-            return createJsonResponse(request, user.getStreakProgress());
+            return createResponse(request, user.getStreakProgress());
 
         } catch (Exception e) {
             return handleException(request, e);

@@ -8,7 +8,6 @@ import cloudnative.fitapp.service.AuthService;
 import cloudnative.fitapp.service.UserService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
-import java.util.List;
 import java.util.logging.Logger;
 
 /**
@@ -59,7 +58,7 @@ public class AuthFunctions extends BaseFunctionHandler {
             }
 
             AuthResponse response = new AuthResponse(token, user.getId());
-            return createJsonResponse(request, response);
+            return createResponse(request, response);
 
         } catch (Exception e) {
             context.getLogger().severe("Login error: " + e.getMessage());
@@ -102,7 +101,7 @@ public class AuthFunctions extends BaseFunctionHandler {
             );
 
             UserResponse response = new UserResponse(user);
-            return createJsonResponse(request, response, HttpStatus.CREATED);
+            return createResponse(request, response, HttpStatus.CREATED);
 
         } catch (Exception e) {
             context.getLogger().severe("Registration error: " + e.getMessage());

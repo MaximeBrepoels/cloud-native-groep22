@@ -2,44 +2,96 @@ package cloudnative.fitapp.service;
 
 import cloudnative.fitapp.domain.Exercise;
 import cloudnative.fitapp.domain.Set;
-import cloudnative.fitapp.repository.SetRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+import cloudnative.fitapp.domain.Workout;
 
+import java.util.ArrayList;
 import java.util.List;
 
-@Service
+/**
+ * Pure Java Set Service for Azure Functions.
+ */
 public class SetService {
 
-    @Autowired
-    private SetRepository setRepository;
+    private final CosmosDBService cosmosDBService;
+    private final ExerciseService exerciseService;
 
-    @Autowired
-    private ExerciseService exerciseService;
+    public SetService(CosmosDBService cosmosDBService, ExerciseService exerciseService) {
+        this.cosmosDBService = cosmosDBService;
+        this.exerciseService = exerciseService;
+    }
 
     public List<Set> getAllSets() {
-        return setRepository.findAll();
+        List<Set> allSets = new ArrayList<>();
+        List<Workout> workouts = cosmosDBService.findAll("workouts", Workout.class);
+        
+        for (Workout workout : workouts) {
+            if (workout.getExercises() != null) {
+                for (Exercise exercise : workout.getExercises()) {
+                    if (exercise.getSets() != null) {
+                        allSets.addAll(exercise.getSets());
+                    }
+                }
+            }
+        }
+        return allSets;
     }
 
     public Set getSetById(Long id) {
-        return setRepository.findById(id).orElse(null);
+        String setId = String.valueOf(id);
+        List<Workout> workouts = cosmosDBService.findAll("workouts", Workout.class);
+        
+        for (Workout workout : workouts) {
+            if (workout.getExercises() != null) {
+                for (Exercise exercise : workout.getExercises()) {
+                    if (exercise.getSets() != null) {
+                        for (Set set : exercise.getSets()) {
+                            if (setId.equals(set.getId()) || 
+                                String.valueOf(set.getId()).equals(setId)) {
+                                set.setExercise(exercise);
+                                return set;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     public Set addSetToExercise(Long exerciseId, Set set) {
         Exercise exercise = exerciseService.getExerciseById(exerciseId);
         Set newSet = exercise.addSet(set);
-        exerciseService.updateExercise(exerciseId, exercise);
+        cosmosDBService.update("workouts", exercise.getWorkout(), exercise.getWorkout().getUserId(), Workout.class);
         return newSet;
     }
 
     public void deleteSet(Long id) {
-        setRepository.deleteById(id);
+        String setId = String.valueOf(id);
+        List<Workout> workouts = cosmosDBService.findAll("workouts", Workout.class);
+        
+        for (Workout workout : workouts) {
+            if (workout.getExercises() != null) {
+                for (Exercise exercise : workout.getExercises()) {
+                    if (exercise.getSets() != null) {
+                        exercise.getSets().removeIf(s ->
+                                setId.equals(s.getId()) ||
+                                        String.valueOf(s.getId()).equals(setId)
+                        );
+                    }
+                }
+            }
+            cosmosDBService.update("workouts", workout, workout.getUserId(), Workout.class);
+        }
     }
 
     public Set updateSet(Long id, Set newValuesSet) {
         Set set = getSetById(id);
-        set.updateValuesSet(newValuesSet.getReps(), newValuesSet.getWeight(),
-                newValuesSet.getDuration(), newValuesSet.getExercise());
-        return setRepository.save(set);
+        if (set != null) {
+            set.updateValuesSet(newValuesSet.getReps(), newValuesSet.getWeight(),
+                    newValuesSet.getDuration(), newValuesSet.getExercise());
+            Exercise exercise = set.getExercise();
+            cosmosDBService.update("workouts", exercise.getWorkout(), exercise.getWorkout().getUserId(), Workout.class);
+        }
+        return set;
     }
 }

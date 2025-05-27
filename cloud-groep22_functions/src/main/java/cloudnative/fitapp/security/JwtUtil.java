@@ -12,14 +12,13 @@ import java.util.Date;
  */
 public class JwtUtil {
 
-    private final String secretKey;
+    private static final String DEFAULT_SECRET = "HeelGeheimeKeyDieEigenlijkInEenEnvZouMoetenStaan";
     private static final int TOKEN_VALIDITY = 3600 * 1000;
+    private final String secretKey = getSecretKey();
 
-    public JwtUtil() {
-        this.secretKey = System.getenv("JWT_SECRET_KEY");
-        if (this.secretKey == null || this.secretKey.isEmpty()) {
-            this.secretKey = "HeelGeheimeKeyDieEigenlijkInEenEnvZouMoetenStaan";
-        }
+    private static String getSecretKey() {
+        String envKey = System.getenv("JWT_SECRET_KEY");
+        return (envKey == null || envKey.isEmpty()) ? DEFAULT_SECRET : envKey;
     }
 
     private Key getSigningKey() {

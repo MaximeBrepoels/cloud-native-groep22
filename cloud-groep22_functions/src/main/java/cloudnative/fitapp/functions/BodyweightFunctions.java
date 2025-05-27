@@ -19,7 +19,7 @@ public class BodyweightFunctions extends BaseFunctionHandler {
     public HttpResponseMessage getAllBodyweight(
             @HttpTrigger(
                     name = "req",
-                    methods = {HttpMethod.GET},
+                    methods = {HttpMethod.GET, HttpMethod.OPTIONS},
                     route = "bodyweight",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<Optional<String>> request,
@@ -27,9 +27,13 @@ public class BodyweightFunctions extends BaseFunctionHandler {
 
         context.getLogger().info("Getting all bodyweight entries");
 
+        if (request.getHttpMethod() == HttpMethod.OPTIONS) {
+            return handleCors(request);
+        }
+
         try {
             validateToken(request);
-            BodyweightService bodyweightService = getBean(BodyweightService.class);
+            BodyweightService bodyweightService = new BodyweightService(cosmosDBService);
             List<Bodyweight> bodyweights = bodyweightService.getAllBodyweight();
             return createResponse(request, bodyweights);
         } catch (Exception e) {
@@ -44,7 +48,7 @@ public class BodyweightFunctions extends BaseFunctionHandler {
     public HttpResponseMessage getBodyweightByUserId(
             @HttpTrigger(
                     name = "req",
-                    methods = {HttpMethod.GET},
+                    methods = {HttpMethod.GET, HttpMethod.OPTIONS},
                     route = "bodyweight/{id}",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<Optional<String>> request,
@@ -53,9 +57,13 @@ public class BodyweightFunctions extends BaseFunctionHandler {
 
         context.getLogger().info("Getting bodyweight for user: " + id);
 
+        if (request.getHttpMethod() == HttpMethod.OPTIONS) {
+            return handleCors(request);
+        }
+
         try {
             validateToken(request);
-            BodyweightService bodyweightService = getBean(BodyweightService.class);
+            BodyweightService bodyweightService = new BodyweightService(cosmosDBService);
             List<Bodyweight> bodyweights = bodyweightService.getBodyweightByUserId(Long.parseLong(id));
             return createResponse(request, bodyweights);
         } catch (Exception e) {
@@ -70,7 +78,7 @@ public class BodyweightFunctions extends BaseFunctionHandler {
     public HttpResponseMessage addBodyweight(
             @HttpTrigger(
                     name = "req",
-                    methods = {HttpMethod.POST},
+                    methods = {HttpMethod.POST, HttpMethod.OPTIONS},
                     route = "bodyweight/add/{userId}",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<String> request,
@@ -79,10 +87,14 @@ public class BodyweightFunctions extends BaseFunctionHandler {
 
         context.getLogger().info("Adding bodyweight for user: " + userId);
 
+        if (request.getHttpMethod() == HttpMethod.OPTIONS) {
+            return handleCors(request);
+        }
+
         try {
             validateToken(request);
             Bodyweight bodyweight = parseBody(request, Bodyweight.class);
-            BodyweightService bodyweightService = getBean(BodyweightService.class);
+            BodyweightService bodyweightService = new BodyweightService(cosmosDBService);
             Bodyweight newBodyweight = bodyweightService.addBodyweight(Long.parseLong(userId), bodyweight);
             return createResponse(request, newBodyweight);
         } catch (Exception e) {

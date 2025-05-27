@@ -1,9 +1,12 @@
 package cloudnative.fitapp.functions;
 
+import cloudnative.fitapp.service.WorkoutService;
 import com.microsoft.azure.functions.*;
 import com.microsoft.azure.functions.annotation.*;
 import cloudnative.fitapp.domain.Exercise;
 import cloudnative.fitapp.service.ExerciseService;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -19,7 +22,7 @@ public class ExerciseFunctions extends BaseFunctionHandler {
     public HttpResponseMessage getAllExercises(
             @HttpTrigger(
                     name = "req",
-                    methods = {HttpMethod.GET},
+                    methods = {HttpMethod.GET, HttpMethod.OPTIONS},
                     route = "exercises",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<Optional<String>> request,
@@ -27,9 +30,18 @@ public class ExerciseFunctions extends BaseFunctionHandler {
 
         context.getLogger().info("Getting all exercises");
 
+        if (request.getHttpMethod() == HttpMethod.OPTIONS) {
+            return handleCors(request);
+        }
+
         try {
             validateToken(request);
-            ExerciseService exerciseService = getBean(ExerciseService.class);
+
+            BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+            WorkoutService workoutService = new WorkoutService(cosmosDBService,
+                    new cloudnative.fitapp.service.UserService(cosmosDBService, passwordEncoder));
+            ExerciseService exerciseService = new ExerciseService(cosmosDBService, workoutService);
+
             List<Exercise> exercises = exerciseService.getAllExercises();
             return createResponse(request, exercises);
         } catch (Exception e) {
@@ -44,7 +56,7 @@ public class ExerciseFunctions extends BaseFunctionHandler {
     public HttpResponseMessage createExercise(
             @HttpTrigger(
                     name = "req",
-                    methods = {HttpMethod.POST},
+                    methods = {HttpMethod.POST, HttpMethod.OPTIONS},
                     route = "exercises",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<String> request,
@@ -52,13 +64,21 @@ public class ExerciseFunctions extends BaseFunctionHandler {
 
         context.getLogger().info("Creating new exercise");
 
+        if (request.getHttpMethod() == HttpMethod.OPTIONS) {
+            return handleCors(request);
+        }
+
         try {
             validateToken(request);
             String workoutId = getQueryParam(request, "workoutId")
                     .orElseThrow(() -> new IllegalArgumentException("workoutId parameter is required"));
 
             Exercise exercise = parseBody(request, Exercise.class);
-            ExerciseService exerciseService = getBean(ExerciseService.class);
+
+            BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+            WorkoutService workoutService = new WorkoutService(cosmosDBService,
+                    new cloudnative.fitapp.service.UserService(cosmosDBService, passwordEncoder));
+            ExerciseService exerciseService = new ExerciseService(cosmosDBService, workoutService);
 
             Exercise createdExercise;
             if (exercise.getName() != null && exercise.getType() == null) {
@@ -80,7 +100,7 @@ public class ExerciseFunctions extends BaseFunctionHandler {
     public HttpResponseMessage getExerciseById(
             @HttpTrigger(
                     name = "req",
-                    methods = {HttpMethod.GET},
+                    methods = {HttpMethod.GET, HttpMethod.OPTIONS},
                     route = "exercises/{id}",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<Optional<String>> request,
@@ -89,9 +109,18 @@ public class ExerciseFunctions extends BaseFunctionHandler {
 
         context.getLogger().info("Getting exercise by ID: " + id);
 
+        if (request.getHttpMethod() == HttpMethod.OPTIONS) {
+            return handleCors(request);
+        }
+
         try {
             validateToken(request);
-            ExerciseService exerciseService = getBean(ExerciseService.class);
+
+            BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+            WorkoutService workoutService = new WorkoutService(cosmosDBService,
+                    new cloudnative.fitapp.service.UserService(cosmosDBService, passwordEncoder));
+            ExerciseService exerciseService = new ExerciseService(cosmosDBService, workoutService);
+
             Exercise exercise = exerciseService.getExerciseById(Long.parseLong(id));
             return createResponse(request, exercise);
         } catch (Exception e) {
@@ -106,7 +135,7 @@ public class ExerciseFunctions extends BaseFunctionHandler {
     public HttpResponseMessage getExercisesByWorkoutId(
             @HttpTrigger(
                     name = "req",
-                    methods = {HttpMethod.GET},
+                    methods = {HttpMethod.GET, HttpMethod.OPTIONS},
                     route = "exercises/workout/{workoutId}",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<Optional<String>> request,
@@ -115,9 +144,18 @@ public class ExerciseFunctions extends BaseFunctionHandler {
 
         context.getLogger().info("Getting exercises for workout: " + workoutId);
 
+        if (request.getHttpMethod() == HttpMethod.OPTIONS) {
+            return handleCors(request);
+        }
+
         try {
             validateToken(request);
-            ExerciseService exerciseService = getBean(ExerciseService.class);
+
+            BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+            WorkoutService workoutService = new WorkoutService(cosmosDBService,
+                    new cloudnative.fitapp.service.UserService(cosmosDBService, passwordEncoder));
+            ExerciseService exerciseService = new ExerciseService(cosmosDBService, workoutService);
+
             List<Exercise> exercises = exerciseService.getExercisesByWorkoutId(Long.parseLong(workoutId));
             return createResponse(request, exercises);
         } catch (Exception e) {
@@ -132,7 +170,7 @@ public class ExerciseFunctions extends BaseFunctionHandler {
     public HttpResponseMessage updateExercise(
             @HttpTrigger(
                     name = "req",
-                    methods = {HttpMethod.PUT},
+                    methods = {HttpMethod.PUT, HttpMethod.OPTIONS},
                     route = "exercises/{id}",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<String> request,
@@ -141,10 +179,20 @@ public class ExerciseFunctions extends BaseFunctionHandler {
 
         context.getLogger().info("Updating exercise: " + id);
 
+        if (request.getHttpMethod() == HttpMethod.OPTIONS) {
+            return handleCors(request);
+        }
+
         try {
             validateToken(request);
+
             Exercise exercise = parseBody(request, Exercise.class);
-            ExerciseService exerciseService = getBean(ExerciseService.class);
+
+            BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+            WorkoutService workoutService = new WorkoutService(cosmosDBService,
+                    new cloudnative.fitapp.service.UserService(cosmosDBService, passwordEncoder));
+            ExerciseService exerciseService = new ExerciseService(cosmosDBService, workoutService);
+
             Exercise updatedExercise = exerciseService.updateExercise(Long.parseLong(id), exercise);
             return createResponse(request, updatedExercise);
         } catch (Exception e) {
@@ -159,7 +207,7 @@ public class ExerciseFunctions extends BaseFunctionHandler {
     public HttpResponseMessage deleteExerciseFromWorkout(
             @HttpTrigger(
                     name = "req",
-                    methods = {HttpMethod.DELETE},
+                    methods = {HttpMethod.DELETE, HttpMethod.OPTIONS},
                     route = "exercises/workout/{workoutId}/exercise/{exerciseId}",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<Optional<String>> request,
@@ -169,9 +217,18 @@ public class ExerciseFunctions extends BaseFunctionHandler {
 
         context.getLogger().info("Deleting exercise: " + exerciseId + " from workout: " + workoutId);
 
+        if (request.getHttpMethod() == HttpMethod.OPTIONS) {
+            return handleCors(request);
+        }
+
         try {
             validateToken(request);
-            ExerciseService exerciseService = getBean(ExerciseService.class);
+
+            BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+            WorkoutService workoutService = new WorkoutService(cosmosDBService,
+                    new cloudnative.fitapp.service.UserService(cosmosDBService, passwordEncoder));
+            ExerciseService exerciseService = new ExerciseService(cosmosDBService, workoutService);
+
             String response = exerciseService.deleteExerciseFromWorkout(
                     Long.parseLong(workoutId),
                     Long.parseLong(exerciseId)
@@ -189,7 +246,7 @@ public class ExerciseFunctions extends BaseFunctionHandler {
     public HttpResponseMessage autoIncrease(
             @HttpTrigger(
                     name = "req",
-                    methods = {HttpMethod.PUT},
+                    methods = {HttpMethod.PUT, HttpMethod.OPTIONS},
                     route = "exercises/increase/{id}",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<Optional<String>> request,
@@ -198,9 +255,18 @@ public class ExerciseFunctions extends BaseFunctionHandler {
 
         context.getLogger().info("Auto increasing exercise: " + id);
 
+        if (request.getHttpMethod() == HttpMethod.OPTIONS) {
+            return handleCors(request);
+        }
+
         try {
             validateToken(request);
-            ExerciseService exerciseService = getBean(ExerciseService.class);
+
+            BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+            WorkoutService workoutService = new WorkoutService(cosmosDBService,
+                    new cloudnative.fitapp.service.UserService(cosmosDBService, passwordEncoder));
+            ExerciseService exerciseService = new ExerciseService(cosmosDBService, workoutService);
+
             Exercise exercise = exerciseService.autoIncrease(Long.parseLong(id));
             return createResponse(request, exercise);
         } catch (Exception e) {
@@ -215,7 +281,7 @@ public class ExerciseFunctions extends BaseFunctionHandler {
     public HttpResponseMessage autoDecrease(
             @HttpTrigger(
                     name = "req",
-                    methods = {HttpMethod.PUT},
+                    methods = {HttpMethod.PUT, HttpMethod.OPTIONS},
                     route = "exercises/decrease/{id}",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<Optional<String>> request,
@@ -224,9 +290,18 @@ public class ExerciseFunctions extends BaseFunctionHandler {
 
         context.getLogger().info("Auto decreasing exercise: " + id);
 
+        if (request.getHttpMethod() == HttpMethod.OPTIONS) {
+            return handleCors(request);
+        }
+
         try {
             validateToken(request);
-            ExerciseService exerciseService = getBean(ExerciseService.class);
+
+            BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+            WorkoutService workoutService = new WorkoutService(cosmosDBService,
+                    new cloudnative.fitapp.service.UserService(cosmosDBService, passwordEncoder));
+            ExerciseService exerciseService = new ExerciseService(cosmosDBService, workoutService);
+
             Exercise exercise = exerciseService.autoDecrease(Long.parseLong(id));
             return createResponse(request, exercise);
         } catch (Exception e) {
@@ -241,7 +316,7 @@ public class ExerciseFunctions extends BaseFunctionHandler {
     public HttpResponseMessage getExercisesByUserId(
             @HttpTrigger(
                     name = "req",
-                    methods = {HttpMethod.GET},
+                    methods = {HttpMethod.GET, HttpMethod.OPTIONS},
                     route = "exercises/user/{userId}",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<Optional<String>> request,
@@ -250,9 +325,18 @@ public class ExerciseFunctions extends BaseFunctionHandler {
 
         context.getLogger().info("Getting exercises for user: " + userId);
 
+        if (request.getHttpMethod() == HttpMethod.OPTIONS) {
+            return handleCors(request);
+        }
+
         try {
             validateToken(request);
-            ExerciseService exerciseService = getBean(ExerciseService.class);
+
+            BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+            WorkoutService workoutService = new WorkoutService(cosmosDBService,
+                    new cloudnative.fitapp.service.UserService(cosmosDBService, passwordEncoder));
+            ExerciseService exerciseService = new ExerciseService(cosmosDBService, workoutService);
+
             List<Exercise> exercises = exerciseService.getExercisesByUserId(Long.parseLong(userId));
             return createResponse(request, exercises);
         } catch (Exception e) {

@@ -78,7 +78,7 @@ public abstract class BaseFunctionHandler {
     /**
      * Create a success response with JSON body.
      */
-    protected HttpResponseMessage createJsonResponse(HttpRequestMessage<?> request, Object body, HttpStatus status) {
+    protected HttpResponseMessage createResponse(HttpRequestMessage<?> request, Object body, HttpStatus status) {
         try {
             String json = objectMapper.writeValueAsString(body);
             return request.createResponseBuilder(status)
@@ -95,8 +95,8 @@ public abstract class BaseFunctionHandler {
         }
     }
 
-    protected HttpResponseMessage createJsonResponse(HttpRequestMessage<?> request, Object body) {
-        return createJsonResponse(request, body, HttpStatus.OK);
+    protected HttpResponseMessage createResponse(HttpRequestMessage<?> request, Object body) {
+        return createResponse(request, body, HttpStatus.OK);
     }
 
     /**

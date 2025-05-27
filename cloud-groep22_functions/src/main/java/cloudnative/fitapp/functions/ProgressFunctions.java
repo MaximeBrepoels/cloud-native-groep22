@@ -19,7 +19,7 @@ public class ProgressFunctions extends BaseFunctionHandler {
     public HttpResponseMessage getAllProgress(
             @HttpTrigger(
                     name = "req",
-                    methods = {HttpMethod.GET},
+                    methods = {HttpMethod.GET, HttpMethod.OPTIONS},
                     route = "progress",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<Optional<String>> request,
@@ -27,9 +27,13 @@ public class ProgressFunctions extends BaseFunctionHandler {
 
         context.getLogger().info("Getting all progress entries");
 
+        if (request.getHttpMethod() == HttpMethod.OPTIONS) {
+            return handleCors(request);
+        }
+
         try {
             validateToken(request);
-            ProgressService progressService = getBean(ProgressService.class);
+            ProgressService progressService = new ProgressService(cosmosDBService);
             List<Progress> progressList = progressService.getAllProgress();
             return createResponse(request, progressList);
         } catch (Exception e) {
@@ -44,7 +48,7 @@ public class ProgressFunctions extends BaseFunctionHandler {
     public HttpResponseMessage getProgressByExerciseId(
             @HttpTrigger(
                     name = "req",
-                    methods = {HttpMethod.GET},
+                    methods = {HttpMethod.GET, HttpMethod.OPTIONS},
                     route = "progress/{id}",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<Optional<String>> request,
@@ -53,9 +57,13 @@ public class ProgressFunctions extends BaseFunctionHandler {
 
         context.getLogger().info("Getting progress for exercise: " + id);
 
+        if (request.getHttpMethod() == HttpMethod.OPTIONS) {
+            return handleCors(request);
+        }
+
         try {
             validateToken(request);
-            ProgressService progressService = getBean(ProgressService.class);
+            ProgressService progressService = new ProgressService(cosmosDBService);
             List<Progress> progressList = progressService.getProgressByExerciseId(Long.parseLong(id));
             return createResponse(request, progressList);
         } catch (Exception e) {

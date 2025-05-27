@@ -2,35 +2,68 @@ package cloudnative.fitapp.service;
 
 import cloudnative.fitapp.domain.Bodyweight;
 import cloudnative.fitapp.domain.User;
-import cloudnative.fitapp.repository.BodyweightRepository;
-import cloudnative.fitapp.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
-@Service
+/**
+ * Pure Java Bodyweight Service for Azure Functions.
+ */
 public class BodyweightService {
 
-    @Autowired
-    private BodyweightRepository bodyweightRepository;
+    private final CosmosDBService cosmosDBService;
 
-    @Autowired
-    private UserRepository userRepository;
+    public BodyweightService(CosmosDBService cosmosDBService) {
+        this.cosmosDBService = cosmosDBService;
+    }
 
     public List<Bodyweight> getAllBodyweight() {
-        return bodyweightRepository.findAll();
+        List<Bodyweight> allBodyweights = new ArrayList<>();
+        List<User> users = cosmosDBService.findAll("users", User.class);
+        
+        for (User user : users) {
+            if (user.getBodyweightList() != null) {
+                for (Bodyweight bw : user.getBodyweightList()) {
+                    bw.setUser(user);
+                    allBodyweights.add(bw);
+                }
+            }
+        }
+        return allBodyweights;
     }
 
     public List<Bodyweight> getBodyweightByUserId(Long id) {
-        return bodyweightRepository.findByUserId(id);
+        String query = String.format("SELECT * FROM c WHERE c.id = '%s'", id);
+        List<User> users = cosmosDBService.query("users", query, User.class);
+        
+        if (!users.isEmpty() && users.get(0).getBodyweightList() != null) {
+            List<Bodyweight> bodyweights = users.get(0).getBodyweightList();
+            for (Bodyweight bw : bodyweights) {
+                bw.setUser(users.get(0));
+            }
+            return bodyweights;
+        }
+        return new ArrayList<>();
     }
 
     public Bodyweight addBodyweight(Long userId, Bodyweight bodyweight) {
-        User user = userRepository.findById(String.valueOf(userId)).orElseThrow(() ->
-                new RuntimeException("User not found"));
+        String query = String.format("SELECT * FROM c WHERE c.id = '%s'", userId);
+        List<User> users = cosmosDBService.query("users", query, User.class);
+        
+        if (users.isEmpty()) {
+            throw new RuntimeException("User not found");
+        }
+        
+        User user = users.get(0);
         bodyweight.setUser(user);
         bodyweight.setId(String.valueOf(System.currentTimeMillis() + (int)(Math.random() * 1000)));
-        return bodyweightRepository.save(bodyweight);
+        
+        if (user.getBodyweightList() == null) {
+            user.setBodyweightList(new ArrayList<>());
+        }
+        user.getBodyweightList().add(bodyweight);
+        
+        cosmosDBService.update("users", user, user.getEmail(), User.class);
+        return bodyweight;
     }
 }

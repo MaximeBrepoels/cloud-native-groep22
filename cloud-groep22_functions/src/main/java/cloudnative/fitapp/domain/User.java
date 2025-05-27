@@ -4,12 +4,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Getter;
 import lombok.Setter;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 @Getter
@@ -36,12 +32,6 @@ public class User {
         this.password = password;
         this.workoutIds = new ArrayList<>();
         this.bodyweightList = new ArrayList<>();
-    }
-
-    // Don't store authorities in the database - generate them when needed
-    @JsonIgnore
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
     }
 
     public void updateValuesUser(String name, String email, String password) {
