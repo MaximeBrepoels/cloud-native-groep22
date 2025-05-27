@@ -178,10 +178,11 @@ public class WorkoutFunctions extends BaseFunctionHandler {
 
             String name = json.get("name").asText();
             Integer rest = json.get("rest").asInt();
-            List<String> exerciseIds = mapper.convertValue(
-                            json.get("exerciseIds"),
-                            mapper.getTypeFactory().constructCollectionType(List.class, Long.class)
-                    ).stream()
+            List<Long> exerciseIdList = mapper.convertValue(
+                    json.get("exerciseIds"),
+                    mapper.getTypeFactory().constructCollectionType(List.class, Long.class)
+            );
+            List<String> exerciseIds = exerciseIdList.stream()
                     .map(Object::toString)
                     .collect(Collectors.toList());
 

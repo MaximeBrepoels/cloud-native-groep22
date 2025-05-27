@@ -1,0 +1,35 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="FitApp Functions Local" type="AZURE_FUNCTION_SUPPORT" factoryName="Run Functions">
+    <option name="appName" />
+    <option name="appServicePlanName" />
+    <option name="appServicePlanResourceGroup" />
+    <option name="appSettingsKey" value="bd27f25a-1783-4af1-975e-9eaa7b1088c8" />
+    <option name="artifact" />
+    <option name="debugOptions" />
+    <option name="deployment" />
+    <option name="deploymentStagingDirectoryPath" />
+    <option name="funcPath" value="/opt/homebrew/Cellar/azure-functions-core-tools@4/4.0.7030/func" />
+    <option name="functionHostArguments" value="--cors *" />
+    <option name="hostJsonPath" value="$PROJECT_DIR$/host.json" />
+    <option name="insightsName" />
+    <option name="instrumentationKey" />
+    <option name="javaVersion" />
+    <option name="localSettingsJsonPath" value="$PROJECT_DIR$/local.settings.json" />
+    <option name="moduleName" value="fitapp-functions" />
+    <option name="os" />
+    <option name="pricingTier" />
+    <option name="providerMap">
+      <map />
+    </option>
+    <option name="region" />
+    <option name="resourceGroup" />
+    <option name="stagingFolder" />
+    <option name="subscription" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+      <option name="ConnectionRunnerForConfigurationId" enabled="false">
+        <option name="envFile" value="$PROJECT_DIR$/.azure/default/.env" />
+      </option>
+    </method>
+  </configuration>
+</component>
