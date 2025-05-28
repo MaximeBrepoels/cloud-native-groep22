@@ -1,3 +1,5 @@
+// Fix the save method in CosmosDBService.java to handle null response.getItem()
+
 package cloudnative.fitapp.service;
 
 import com.azure.cosmos.*;
@@ -13,7 +15,6 @@ import java.util.stream.Collectors;
 
 /**
  * Service for Cosmos DB operations in Azure Functions.
- * This replaces Spring Data Cosmos since we don't have Spring context.
  */
 public class CosmosDBService {
 
@@ -73,7 +74,25 @@ public class CosmosDBService {
             logger.info("Save response status: " + response.getStatusCode());
 
             T savedItem = response.getItem();
-            logger.info("Saved item: " + (savedItem != null ? "success" : "null"));
+            logger.info("Response.getItem() returned: " + (savedItem != null ? "success" : "null"));
+
+            // WORKAROUND: If response.getItem() returns null (common issue with Azure Cosmos SDK)
+            // but the save was successful, return the original item or fetch it back
+            if (savedItem == null && (response.getStatusCode() == 201 || response.getStatusCode() == 200)) {
+                logger.info("Working around null response.getItem() - attempting to fetch saved item");
+
+                // Try to fetch the item back using its ID
+                String itemId = getItemId(item);
+                Optional<T> fetchedItem = findById(containerName, itemId, partitionKey, clazz);
+
+                if (fetchedItem.isPresent()) {
+                    logger.info("Successfully fetched saved item after workaround");
+                    return fetchedItem.get();
+                } else {
+                    logger.warning("Could not fetch item back, returning original item");
+                    return item; // Return the original item as fallback
+                }
+            }
 
             return savedItem;
         } catch (CosmosException e) {
@@ -105,7 +124,16 @@ public class CosmosDBService {
             CosmosItemResponse<T> response = container.replaceItem(item, itemId, new PartitionKey(partitionKey), new CosmosItemRequestOptions());
             logger.info("Update response status: " + response.getStatusCode());
 
-            return response.getItem();
+            T updatedItem = response.getItem();
+
+            // Same workaround for update
+            if (updatedItem == null && (response.getStatusCode() == 200 || response.getStatusCode() == 201)) {
+                logger.info("Working around null response.getItem() for update");
+                Optional<T> fetchedItem = findById(containerName, itemId, partitionKey, clazz);
+                return fetchedItem.orElse(item);
+            }
+
+            return updatedItem;
         } catch (CosmosException e) {
             logger.severe("CosmosException during update: " + e.getMessage());
             throw new RuntimeException("Error updating item in Cosmos DB: " + e.getMessage(), e);
@@ -114,13 +142,18 @@ public class CosmosDBService {
 
     public <T> Optional<T> findById(String containerName, String id, String partitionKey, Class<T> clazz) {
         try {
+            logger.info("Finding item by ID: " + id + " in container: " + containerName);
             CosmosContainer container = database.getContainer(containerName);
             CosmosItemResponse<T> response = container.readItem(id, new PartitionKey(partitionKey), clazz);
-            return Optional.of(response.getItem());
+            T item = response.getItem();
+            logger.info("Found item: " + (item != null ? "success" : "null"));
+            return Optional.ofNullable(item);
         } catch (CosmosException e) {
             if (e.getStatusCode() == 404) {
+                logger.info("Item not found with ID: " + id);
                 return Optional.empty();
             }
+            logger.severe("Error reading item from Cosmos DB: " + e.getMessage());
             throw new RuntimeException("Error reading item from Cosmos DB", e);
         }
     }
