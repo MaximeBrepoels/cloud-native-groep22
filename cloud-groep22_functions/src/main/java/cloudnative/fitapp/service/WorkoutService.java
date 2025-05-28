@@ -3,14 +3,11 @@ package cloudnative.fitapp.service;
 import cloudnative.fitapp.domain.Exercise;
 import cloudnative.fitapp.domain.User;
 import cloudnative.fitapp.domain.Workout;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Pure Java Workout Service for Azure Functions (no Spring dependencies).
- */
+
 public class WorkoutService {
 
     private final CosmosDBService cosmosDBService;
@@ -80,9 +77,6 @@ public class WorkoutService {
         Workout workout = optionalWorkout.get();
         workout.setName(workoutName);
         workout.setRest(rest);
-
-        // For now, we'll skip the exercise update part since we need ExerciseService
-        // This can be implemented later when we create the ExerciseService
 
         return cosmosDBService.update("workouts", workout, workout.getUserId(), Workout.class);
     }

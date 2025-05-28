@@ -5,14 +5,11 @@ import cloudnative.fitapp.domain.Progress;
 import cloudnative.fitapp.domain.Set;
 import cloudnative.fitapp.domain.Workout;
 import cloudnative.fitapp.enums.WorkoutType;
-
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-/**
- * Pure Java Exercise Service for Azure Functions (no Spring dependencies).
- */
+
 public class ExerciseService {
 
     private final CosmosDBService cosmosDBService;
@@ -132,7 +129,19 @@ public class ExerciseService {
         exercise.setType(newValuesExercise.getType());
         exercise.setRest(newValuesExercise.getRest());
         exercise.setAutoIncrease(newValuesExercise.getAutoIncrease());
-        // ... copy other properties as needed
+        exercise.setAutoIncreaseFactor(newValuesExercise.getAutoIncreaseFactor());
+        exercise.setAutoIncreaseWeightStep(newValuesExercise.getAutoIncreaseWeightStep());
+        exercise.setAutoIncreaseStartWeight(newValuesExercise.getAutoIncreaseStartWeight());
+        exercise.setAutoIncreaseMinSets(newValuesExercise.getAutoIncreaseMinSets());
+        exercise.setAutoIncreaseMaxSets(newValuesExercise.getAutoIncreaseMaxSets());
+        exercise.setAutoIncreaseMinReps(newValuesExercise.getAutoIncreaseMinReps());
+        exercise.setAutoIncreaseMaxReps(newValuesExercise.getAutoIncreaseMaxReps());
+        exercise.setAutoIncreaseStartDuration(newValuesExercise.getAutoIncreaseStartDuration());
+        exercise.setAutoIncreaseDurationSets(newValuesExercise.getAutoIncreaseDurationSets());
+        exercise.setAutoIncreaseCurrentSets(newValuesExercise.getAutoIncreaseCurrentSets());
+        exercise.setAutoIncreaseCurrentReps(newValuesExercise.getAutoIncreaseCurrentReps());
+        exercise.setAutoIncreaseCurrentWeight(newValuesExercise.getAutoIncreaseCurrentWeight());
+        exercise.setAutoIncreaseCurrentDuration(newValuesExercise.getAutoIncreaseCurrentDuration());
 
         // Save the parent workout to persist changes
         cosmosDBService.update("workouts", workout, workout.getUserId(), Workout.class);
@@ -141,14 +150,14 @@ public class ExerciseService {
 
     public Exercise autoIncrease(Long id) {
         Exercise exercise = getExerciseById(id);
-        // Implement auto increase logic here
+
         cosmosDBService.update("workouts", exercise.getWorkout(), exercise.getWorkout().getUserId(), Workout.class);
         return exercise;
     }
 
     public Exercise autoDecrease(Long id) {
         Exercise exercise = getExerciseById(id);
-        // Implement auto decrease logic here
+
         cosmosDBService.update("workouts", exercise.getWorkout(), exercise.getWorkout().getUserId(), Workout.class);
         return exercise;
     }

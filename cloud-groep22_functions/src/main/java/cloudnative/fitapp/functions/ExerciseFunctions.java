@@ -7,25 +7,20 @@ import cloudnative.fitapp.domain.Exercise;
 import cloudnative.fitapp.service.ExerciseService;
 import cloudnative.fitapp.service.WorkoutService;
 import cloudnative.fitapp.service.UserService;
-import cloudnative.fitapp.security.SimplePasswordEncoder;
-
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Azure Functions for exercise management endpoints.
- */
+
 public class ExerciseFunctions extends BaseFunctionHandler {
 
-    /**
-     * Get all exercises - GET /api/exercises/all
-     */
+
+    // Get all exercises - GET /api/exercises/all
     @FunctionName("GetAllExercises")
     public HttpResponseMessage getAllExercises(
             @HttpTrigger(
                     name = "req",
                     methods = {HttpMethod.GET, HttpMethod.OPTIONS},
-                    route = "exercises/all",  // Changed from "exercises"
+                    route = "exercises/all",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<Optional<String>> request,
             final ExecutionContext context) {
@@ -51,15 +46,14 @@ public class ExerciseFunctions extends BaseFunctionHandler {
         }
     }
 
-    /**
-     * Create exercise - POST /api/exercises/create?workoutId={workoutId}
-     */
+
+    // Create exercise - POST /api/exercises/create?workoutId={workoutId}
     @FunctionName("CreateExercise")
     public HttpResponseMessage createExercise(
             @HttpTrigger(
                     name = "req",
                     methods = {HttpMethod.POST, HttpMethod.OPTIONS},
-                    route = "exercises/create",  // Changed from "exercises"
+                    route = "exercises/create",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<String> request,
             final ExecutionContext context) {
@@ -95,15 +89,14 @@ public class ExerciseFunctions extends BaseFunctionHandler {
         }
     }
 
-    /**
-     * Get exercise by ID - GET /api/exercises/byId/{id}
-     */
+
+    // Get exercise by ID - GET /api/exercises/byId/{id}
     @FunctionName("GetExerciseById")
     public HttpResponseMessage getExerciseById(
             @HttpTrigger(
                     name = "req",
                     methods = {HttpMethod.GET, HttpMethod.OPTIONS},
-                    route = "exercises/byId/{id}",  // Changed from "exercises/{id}"
+                    route = "exercises/byId/{id}",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<Optional<String>> request,
             @BindingName("id") String id,
@@ -130,15 +123,14 @@ public class ExerciseFunctions extends BaseFunctionHandler {
         }
     }
 
-    /**
-     * Update exercise - PUT /api/exercises/update/{id}
-     */
+
+    // Update exercise - PUT /api/exercises/update/{id}
     @FunctionName("UpdateExercise")
     public HttpResponseMessage updateExercise(
             @HttpTrigger(
                     name = "req",
                     methods = {HttpMethod.PUT, HttpMethod.OPTIONS},
-                    route = "exercises/update/{id}",  // Changed from "exercises/{id}"
+                    route = "exercises/update/{id}",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<String> request,
             @BindingName("id") String id,
@@ -166,10 +158,8 @@ public class ExerciseFunctions extends BaseFunctionHandler {
         }
     }
 
-    // Keep the rest of the methods as they were...
-    /**
-     * Get exercises by workout ID - GET /api/exercises/workout/{workoutId}
-     */
+
+    // Get exercises by workout ID - GET /api/exercises/workout/{workoutId}
     @FunctionName("GetExercisesByWorkoutId")
     public HttpResponseMessage getExercisesByWorkoutId(
             @HttpTrigger(
@@ -202,9 +192,8 @@ public class ExerciseFunctions extends BaseFunctionHandler {
         }
     }
 
-    /**
-     * Delete exercise from workout - DELETE /api/exercises/workout/{workoutId}/exercise/{exerciseId}
-     */
+
+    // Delete exercise from workout - DELETE /api/exercises/workout/{workoutId}/exercise/{exerciseId}
     @FunctionName("DeleteExerciseFromWorkout")
     public HttpResponseMessage deleteExerciseFromWorkout(
             @HttpTrigger(
@@ -241,9 +230,8 @@ public class ExerciseFunctions extends BaseFunctionHandler {
         }
     }
 
-    /**
-     * Auto increase exercise - PUT /api/exercises/increase/{id}
-     */
+
+    // Auto increase exercise - PUT /api/exercises/increase/{id}
     @FunctionName("AutoIncreaseExercise")
     public HttpResponseMessage autoIncrease(
             @HttpTrigger(
@@ -276,9 +264,8 @@ public class ExerciseFunctions extends BaseFunctionHandler {
         }
     }
 
-    /**
-     * Auto decrease exercise - PUT /api/exercises/decrease/{id}
-     */
+
+    // Auto decrease exercise - PUT /api/exercises/decrease/{id}
     @FunctionName("AutoDecreaseExercise")
     public HttpResponseMessage autoDecrease(
             @HttpTrigger(
@@ -311,9 +298,8 @@ public class ExerciseFunctions extends BaseFunctionHandler {
         }
     }
 
-    /**
-     * Get exercises by user ID - GET /api/exercises/user/{userId}
-     */
+
+    // Get exercises by user ID - GET /api/exercises/user/{userId}
     @FunctionName("GetExercisesByUserId")
     public HttpResponseMessage getExercisesByUserId(
             @HttpTrigger(

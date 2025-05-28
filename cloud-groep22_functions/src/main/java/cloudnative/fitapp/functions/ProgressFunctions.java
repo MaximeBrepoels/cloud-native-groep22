@@ -7,14 +7,11 @@ import cloudnative.fitapp.service.ProgressService;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Azure Functions for progress tracking endpoints.
- */
+
 public class ProgressFunctions extends BaseFunctionHandler {
 
-    /**
-     * Get all progress - GET /api/progress
-     */
+
+     // Get all progress - GET /api/progress
     @FunctionName("GetAllProgress")
     public HttpResponseMessage getAllProgress(
             @HttpTrigger(
@@ -41,9 +38,7 @@ public class ProgressFunctions extends BaseFunctionHandler {
         }
     }
 
-    /**
-     * Get progress by exercise ID - GET /api/progress/{id}
-     */
+    // Get progress by exercise ID - GET /api/progress/{id}
     @FunctionName("GetProgressByExerciseId")
     public HttpResponseMessage getProgressByExerciseId(
             @HttpTrigger(

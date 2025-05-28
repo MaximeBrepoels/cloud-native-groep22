@@ -7,14 +7,11 @@ import cloudnative.fitapp.service.BodyweightService;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Azure Functions for bodyweight tracking endpoints.
- */
+
 public class BodyweightFunctions extends BaseFunctionHandler {
 
-    /**
-     * Get all bodyweight entries - GET /api/bodyweight
-     */
+
+    // Get all bodyweight entries - GET /api/bodyweight
     @FunctionName("GetAllBodyweight")
     public HttpResponseMessage getAllBodyweight(
             @HttpTrigger(
@@ -41,9 +38,8 @@ public class BodyweightFunctions extends BaseFunctionHandler {
         }
     }
 
-    /**
-     * Get bodyweight by user ID - GET /api/bodyweight/{id}
-     */
+
+    // Get bodyweight by user ID - GET /api/bodyweight/{id}
     @FunctionName("GetBodyweightByUserId")
     public HttpResponseMessage getBodyweightByUserId(
             @HttpTrigger(
@@ -71,9 +67,8 @@ public class BodyweightFunctions extends BaseFunctionHandler {
         }
     }
 
-    /**
-     * Add bodyweight entry - POST /api/bodyweight/add/{userId}
-     */
+
+    // Add bodyweight entry - POST /api/bodyweight/add/{userId}
     @FunctionName("AddBodyweight")
     public HttpResponseMessage addBodyweight(
             @HttpTrigger(

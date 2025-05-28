@@ -3,13 +3,10 @@ package cloudnative.fitapp.service;
 import cloudnative.fitapp.domain.User;
 import cloudnative.fitapp.domain.Workout;
 import cloudnative.fitapp.security.SimplePasswordEncoder;
-
 import java.util.List;
 import java.util.logging.Logger;
 
-/**
- * Pure Java User Service for Azure Functions (no Spring dependencies).
- */
+
 public class UserService {
 
     private static final Logger logger = Logger.getLogger(UserService.class.getName());

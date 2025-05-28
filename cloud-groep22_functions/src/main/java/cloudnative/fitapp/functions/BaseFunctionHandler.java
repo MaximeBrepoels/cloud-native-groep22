@@ -7,13 +7,10 @@ import com.microsoft.azure.functions.HttpResponseMessage;
 import com.microsoft.azure.functions.HttpStatus;
 import cloudnative.fitapp.security.JwtUtil;
 import cloudnative.fitapp.service.CosmosDBService;
-
 import java.util.Optional;
 import java.util.logging.Logger;
 
-/**
- * Base class for Azure Functions with proper implementations.
- */
+
 public abstract class BaseFunctionHandler {
 
     protected static final Logger logger = Logger.getLogger(BaseFunctionHandler.class.getName());
@@ -45,11 +42,8 @@ public abstract class BaseFunctionHandler {
         return mapper;
     }
 
-    // ... rest of the methods remain the same
 
-    /**
-     * Validate JWT token from the Authorization header.
-     */
+    // Validate JWT token from the Authorization header.
     protected String validateToken(HttpRequestMessage<?> request) {
         String authHeader = request.getHeaders().get("authorization");
         if (authHeader == null) {
@@ -68,9 +62,8 @@ public abstract class BaseFunctionHandler {
         return jwtUtil.extractEmail(token);
     }
 
-    /**
-     * Parse request body to the specified class.
-     */
+
+    // Parses a request's JSON body into the specified class
     protected <T> T parseBody(HttpRequestMessage<?> request, Class<T> clazz) {
         try {
             String body = request.getBody().toString();
@@ -82,9 +75,8 @@ public abstract class BaseFunctionHandler {
         }
     }
 
-    /**
-     * Create a success response with JSON body.
-     */
+
+    // Creates a success response with a JSON body
     protected HttpResponseMessage createResponse(HttpRequestMessage<?> request, Object body, HttpStatus status) {
         try {
             String json = objectMapper.writeValueAsString(body);
@@ -106,9 +98,8 @@ public abstract class BaseFunctionHandler {
         return createResponse(request, body, HttpStatus.OK);
     }
 
-    /**
-     * Create an error response.
-     */
+
+    // Creates an error response
     protected HttpResponseMessage createErrorResponse(HttpRequestMessage<?> request,
                                                       HttpStatus status, String message) {
         return request.createResponseBuilder(status)
@@ -120,9 +111,8 @@ public abstract class BaseFunctionHandler {
                 .build();
     }
 
-    /**
-     * Handle exceptions and return appropriate HTTP responses.
-     */
+
+    // Handles exceptions and returns appropriate HTTP responses
     protected HttpResponseMessage handleException(HttpRequestMessage<?> request, Exception e) {
         logger.severe("Error processing request: " + e.getMessage());
         e.printStackTrace();
@@ -137,16 +127,14 @@ public abstract class BaseFunctionHandler {
         }
     }
 
-    /**
-     * Get optional query parameter from request.
-     */
+
+    // Gets the optional query parameter(s) from a request
     protected Optional<String> getQueryParam(HttpRequestMessage<?> request, String paramName) {
         return Optional.ofNullable(request.getQueryParameters().get(paramName));
     }
 
-    /**
-     * Handle CORS preflight requests.
-     */
+
+    // Handles CORS preflight requests
     protected HttpResponseMessage handleCors(HttpRequestMessage<?> request) {
         return request.createResponseBuilder(HttpStatus.OK)
                 .header("Access-Control-Allow-Origin", "*")

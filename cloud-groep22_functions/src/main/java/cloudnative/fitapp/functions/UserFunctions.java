@@ -6,19 +6,16 @@ import com.microsoft.azure.functions.annotation.*;
 import cloudnative.fitapp.domain.User;
 import cloudnative.fitapp.domain.Workout;
 import cloudnative.fitapp.dto.UpdatePasswordRequest;
-import cloudnative.fitapp.security.SimplePasswordEncoder; // Changed import
+import cloudnative.fitapp.security.SimplePasswordEncoder;
 
 import java.util.List;
 import java.util.Optional;
 
-/**
- * User management functions.
- */
+
 public class UserFunctions extends BaseFunctionHandler {
 
-    /**
-     * Get all users - GET /api/users
-     */
+
+    // Get all users - GET /api/users
     @FunctionName("GetAllUsers")
     public HttpResponseMessage getAllUsers(
             @HttpTrigger(
@@ -38,7 +35,7 @@ public class UserFunctions extends BaseFunctionHandler {
         try {
             validateToken(request);
 
-            SimplePasswordEncoder passwordEncoder = new SimplePasswordEncoder(); // Changed
+            SimplePasswordEncoder passwordEncoder = new SimplePasswordEncoder();
             UserService userService = new UserService(cosmosDBService, passwordEncoder);
             List<User> users = userService.getAllUsers();
 
@@ -48,9 +45,8 @@ public class UserFunctions extends BaseFunctionHandler {
         }
     }
 
-    /**
-     * Get user by ID - GET /api/users/{id}
-     */
+
+    // Get user by ID - GET /api/users/{id}
     @FunctionName("GetUserById")
     public HttpResponseMessage getUserById(
             @HttpTrigger(
@@ -71,7 +67,7 @@ public class UserFunctions extends BaseFunctionHandler {
         try {
             validateToken(request);
 
-            SimplePasswordEncoder passwordEncoder = new SimplePasswordEncoder(); // Changed
+            SimplePasswordEncoder passwordEncoder = new SimplePasswordEncoder();
             UserService userService = new UserService(cosmosDBService, passwordEncoder);
             User user = userService.getUserById(id);
 
@@ -85,9 +81,8 @@ public class UserFunctions extends BaseFunctionHandler {
         }
     }
 
-    /**
-     * Get user workouts - GET /api/users/{id}/workouts
-     */
+
+    // Get user workouts - GET /api/users/{id}/workouts
     @FunctionName("GetUserWorkouts")
     public HttpResponseMessage getUserWorkouts(
             @HttpTrigger(
@@ -108,7 +103,7 @@ public class UserFunctions extends BaseFunctionHandler {
         try {
             validateToken(request);
 
-            SimplePasswordEncoder passwordEncoder = new SimplePasswordEncoder(); // Changed
+            SimplePasswordEncoder passwordEncoder = new SimplePasswordEncoder();
             UserService userService = new UserService(cosmosDBService, passwordEncoder);
             List<Workout> workouts = userService.getAllWorkoutsForUser(id);
 
@@ -118,9 +113,8 @@ public class UserFunctions extends BaseFunctionHandler {
         }
     }
 
-    /**
-     * Update streak goal - PUT /api/users/{userId}/streakGoal/{streakGoal}
-     */
+
+    // Update streak goal - PUT /api/users/{userId}/streakGoal/{streakGoal}
     @FunctionName("UpdateStreakGoal")
     public HttpResponseMessage updateStreakGoal(
             @HttpTrigger(
@@ -147,7 +141,7 @@ public class UserFunctions extends BaseFunctionHandler {
                 throw new IllegalArgumentException("Streak goal must be between 0 and 7");
             }
 
-            SimplePasswordEncoder passwordEncoder = new SimplePasswordEncoder(); // Changed
+            SimplePasswordEncoder passwordEncoder = new SimplePasswordEncoder();
             UserService userService = new UserService(cosmosDBService, passwordEncoder);
             userService.updateStreakGoal(userId, streakGoal);
 
@@ -160,9 +154,8 @@ public class UserFunctions extends BaseFunctionHandler {
         }
     }
 
-    /**
-     * Update streak progress - PUT /api/users/{userId}/streakProgress
-     */
+
+    // Update streak progress - PUT /api/users/{userId}/streakProgress
     @FunctionName("UpdateStreakProgress")
     public HttpResponseMessage updateStreakProgress(
             @HttpTrigger(
@@ -183,7 +176,7 @@ public class UserFunctions extends BaseFunctionHandler {
         try {
             validateToken(request);
 
-            SimplePasswordEncoder passwordEncoder = new SimplePasswordEncoder(); // Changed
+            SimplePasswordEncoder passwordEncoder = new SimplePasswordEncoder();
             UserService userService = new UserService(cosmosDBService, passwordEncoder);
             userService.completedWorkout(userId);
 
@@ -196,9 +189,8 @@ public class UserFunctions extends BaseFunctionHandler {
         }
     }
 
-    /**
-     * Update password - PUT /api/users/{userId}/password
-     */
+
+    // Update password - PUT /api/users/{userId}/password
     @FunctionName("UpdatePassword")
     public HttpResponseMessage updatePassword(
             @HttpTrigger(
@@ -221,7 +213,7 @@ public class UserFunctions extends BaseFunctionHandler {
 
             UpdatePasswordRequest passwordRequest = parseBody(request, UpdatePasswordRequest.class);
 
-            SimplePasswordEncoder passwordEncoder = new SimplePasswordEncoder(); // Changed
+            SimplePasswordEncoder passwordEncoder = new SimplePasswordEncoder();
             UserService userService = new UserService(cosmosDBService, passwordEncoder);
 
             userService.updatePassword(userId,

@@ -3,13 +3,10 @@ package cloudnative.fitapp.service;
 import cloudnative.fitapp.domain.Exercise;
 import cloudnative.fitapp.domain.Progress;
 import cloudnative.fitapp.domain.Workout;
-
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Pure Java Progress Service for Azure Functions.
- */
+
 public class ProgressService {
 
     private final CosmosDBService cosmosDBService;

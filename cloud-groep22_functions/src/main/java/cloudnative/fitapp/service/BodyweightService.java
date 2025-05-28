@@ -2,13 +2,10 @@ package cloudnative.fitapp.service;
 
 import cloudnative.fitapp.domain.Bodyweight;
 import cloudnative.fitapp.domain.User;
-
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Pure Java Bodyweight Service for Azure Functions.
- */
+
 public class BodyweightService {
 
     private final CosmosDBService cosmosDBService;

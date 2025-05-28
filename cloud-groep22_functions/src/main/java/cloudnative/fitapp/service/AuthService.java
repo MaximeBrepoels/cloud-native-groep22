@@ -3,12 +3,9 @@ package cloudnative.fitapp.service;
 import cloudnative.fitapp.security.JwtUtil;
 import cloudnative.fitapp.domain.User;
 import cloudnative.fitapp.security.SimplePasswordEncoder;
-
 import java.util.List;
 
-/**
- * Pure Java Auth Service for Azure Functions (no Spring dependencies).
- */
+
 public class AuthService {
 
     private final JwtUtil jwtUtil;

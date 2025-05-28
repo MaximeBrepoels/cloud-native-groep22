@@ -8,18 +8,14 @@ import cloudnative.fitapp.service.SetService;
 import cloudnative.fitapp.service.ExerciseService;
 import cloudnative.fitapp.service.WorkoutService;
 import cloudnative.fitapp.service.UserService;
-import cloudnative.fitapp.security.SimplePasswordEncoder;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Azure Functions for set management endpoints.
- */
+
 public class SetFunctions extends BaseFunctionHandler {
 
-    /**
-     * Get all sets - GET /api/sets
-     */
+
+    // Get all sets - GET /api/sets
     @FunctionName("GetAllSets")
     public HttpResponseMessage getAllSets(
             @HttpTrigger(
@@ -53,9 +49,8 @@ public class SetFunctions extends BaseFunctionHandler {
         }
     }
 
-    /**
-     * Get set by ID - GET /api/sets/{id}
-     */
+
+    // Get set by ID - GET /api/sets/{id}
     @FunctionName("GetSetById")
     public HttpResponseMessage getSetById(
             @HttpTrigger(
@@ -95,9 +90,8 @@ public class SetFunctions extends BaseFunctionHandler {
         }
     }
 
-    /**
-     * Add set to exercise - POST /api/sets/exercise/{exerciseId}/addSet
-     */
+
+    // Add set to exercise - POST /api/sets/exercise/{exerciseId}/addSet
     @FunctionName("AddSetToExercise")
     public HttpResponseMessage addSetToExercise(
             @HttpTrigger(
@@ -133,9 +127,8 @@ public class SetFunctions extends BaseFunctionHandler {
         }
     }
 
-    /**
-     * Update set - PUT /api/sets/{id}
-     */
+
+    // Update set - PUT /api/sets/{id}
     @FunctionName("UpdateSet")
     public HttpResponseMessage updateSet(
             @HttpTrigger(
@@ -171,9 +164,8 @@ public class SetFunctions extends BaseFunctionHandler {
         }
     }
 
-    /**
-     * Delete set - DELETE /api/sets/{id}
-     */
+
+    // Delete set - DELETE /api/sets/{id}
     @FunctionName("DeleteSet")
     public HttpResponseMessage deleteSet(
             @HttpTrigger(

@@ -9,20 +9,16 @@ import cloudnative.fitapp.domain.Workout;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Simplified workout management functions.
- */
+
 public class WorkoutFunctions extends BaseFunctionHandler {
 
-    /**
-     * Create workout - POST /api/workouts/create?userId={userId}
-     */
+    // Create workout - POST /api/workouts/create?userId={userId}
     @FunctionName("CreateWorkout")
     public HttpResponseMessage createWorkout(
             @HttpTrigger(
                     name = "req",
                     methods = {HttpMethod.POST, HttpMethod.OPTIONS},
-                    route = "workouts/create",  // Changed from "workouts"
+                    route = "workouts/create",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<String> request,
             final ExecutionContext context) {
@@ -72,15 +68,13 @@ public class WorkoutFunctions extends BaseFunctionHandler {
         }
     }
 
-    /**
-     * Get all workouts - GET /api/workouts/all
-     */
+     // Get all workouts - GET /api/workouts/all
     @FunctionName("GetAllWorkouts")
     public HttpResponseMessage getAllWorkouts(
             @HttpTrigger(
                     name = "req",
                     methods = {HttpMethod.GET, HttpMethod.OPTIONS},
-                    route = "workouts/all",  // Changed from "workouts"
+                    route = "workouts/all",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<Optional<String>> request,
             final ExecutionContext context) {
@@ -100,15 +94,14 @@ public class WorkoutFunctions extends BaseFunctionHandler {
         }
     }
 
-    /**
-     * Get workout by ID - GET /api/workouts/byId/{id}
-     */
+
+    // Get workout by ID - GET /api/workouts/byId/{id}
     @FunctionName("GetWorkoutById")
     public HttpResponseMessage getWorkoutById(
             @HttpTrigger(
                     name = "req",
                     methods = {HttpMethod.GET, HttpMethod.OPTIONS},
-                    route = "workouts/byId/{id}",  // Changed from "workouts/{id}"
+                    route = "workouts/byId/{id}",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<Optional<String>> request,
             @BindingName("id") String id,
@@ -136,9 +129,8 @@ public class WorkoutFunctions extends BaseFunctionHandler {
         }
     }
 
-    /**
-     * Get workouts by user ID - GET /api/workouts/user/{userId}
-     */
+
+    // Get workouts by user ID - GET /api/workouts/user/{userId}
     @FunctionName("GetWorkoutsByUserId")
     public HttpResponseMessage getWorkoutsByUserId(
             @HttpTrigger(
@@ -168,15 +160,14 @@ public class WorkoutFunctions extends BaseFunctionHandler {
         }
     }
 
-    /**
-     * Delete workout - DELETE /api/workouts/delete/{id}
-     */
+
+    // Delete workout - DELETE /api/workouts/delete/{id}
     @FunctionName("DeleteWorkout")
     public HttpResponseMessage deleteWorkout(
             @HttpTrigger(
                     name = "req",
                     methods = {HttpMethod.DELETE, HttpMethod.OPTIONS},
-                    route = "workouts/delete/{id}",  // Changed from "workouts/{id}"
+                    route = "workouts/delete/{id}",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<Optional<String>> request,
             @BindingName("id") String id,
@@ -224,9 +215,8 @@ public class WorkoutFunctions extends BaseFunctionHandler {
         }
     }
 
-    /**
-     * Add exercise to workout - POST /api/workouts/{id}/addExercise/{goal}
-     */
+
+    // Add exercise to a workout - POST /api/workouts/{id}/addExercise/{goal}
     @FunctionName("AddExerciseToWorkout")
     public HttpResponseMessage addExerciseToWorkout(
             @HttpTrigger(

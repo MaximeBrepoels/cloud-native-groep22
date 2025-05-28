@@ -3,13 +3,10 @@ package cloudnative.fitapp.service;
 import cloudnative.fitapp.domain.Exercise;
 import cloudnative.fitapp.domain.Set;
 import cloudnative.fitapp.domain.Workout;
-
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Pure Java Set Service for Azure Functions.
- */
+
 public class SetService {
 
     private final CosmosDBService cosmosDBService;

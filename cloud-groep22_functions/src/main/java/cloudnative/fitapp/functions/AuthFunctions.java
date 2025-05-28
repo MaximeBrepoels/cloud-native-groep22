@@ -7,21 +7,17 @@ import cloudnative.fitapp.dto.*;
 import cloudnative.fitapp.service.AuthService;
 import cloudnative.fitapp.service.UserService;
 import cloudnative.fitapp.security.SimplePasswordEncoder;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Logger;
 
-/**
- * Authentication functions for Azure Functions.
- */
+
 public class AuthFunctions extends BaseFunctionHandler {
 
     private static final Logger logger = Logger.getLogger(AuthFunctions.class.getName());
 
-    /**
-     * Register function - POST /api/auth/register
-     */
+
+    // Register new user - POST /api/auth/register
     @FunctionName("Register")
     public HttpResponseMessage register(
             @HttpTrigger(
@@ -72,12 +68,13 @@ public class AuthFunctions extends BaseFunctionHandler {
 
         } catch (Exception e) {
             context.getLogger().severe("Registration error: " + e.getMessage());
-            e.printStackTrace(); // Add stack trace for debugging
+            e.printStackTrace();
             return handleException(request, e);
         }
     }
 
-    // Login method stays the same...
+
+    // Login user - POST /api/auth/login
     @FunctionName("Login")
     public HttpResponseMessage login(
             @HttpTrigger(
@@ -122,6 +119,8 @@ public class AuthFunctions extends BaseFunctionHandler {
         }
     }
 
+
+    // Test Cosmos DB connection - GET /api/test/cosmos
     @FunctionName("TestCosmosConnection")
     public HttpResponseMessage testConnection(
             @HttpTrigger(

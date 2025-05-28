@@ -5,10 +5,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Base64;
 
-/**
- * Simple password encoder for Azure Functions (no Spring dependencies).
- * Uses SHA-256 with salt for password hashing.
- */
+
 public class SimplePasswordEncoder {
 
     private static final String ALGORITHM = "SHA-256";

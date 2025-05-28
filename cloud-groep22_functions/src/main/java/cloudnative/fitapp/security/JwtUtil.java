@@ -3,13 +3,10 @@ package cloudnative.fitapp.security;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import cloudnative.fitapp.domain.User;
-
 import java.security.Key;
 import java.util.Date;
 
-/**
- * JWT utility class for Azure Functions (without Spring annotations).
- */
+
 public class JwtUtil {
 
     private static final String DEFAULT_SECRET = "HeelGeheimeKeyDieEigenlijkInEenEnvZouMoetenStaan";
