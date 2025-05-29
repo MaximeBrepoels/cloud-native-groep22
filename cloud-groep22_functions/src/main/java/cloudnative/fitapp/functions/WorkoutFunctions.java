@@ -18,7 +18,7 @@ public class WorkoutFunctions extends BaseFunctionHandler {
             @HttpTrigger(
                     name = "req",
                     methods = {HttpMethod.POST, HttpMethod.OPTIONS},
-                    route = "workouts/create",
+                    route = "workouts",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<String> request,
             final ExecutionContext context) {
@@ -95,13 +95,13 @@ public class WorkoutFunctions extends BaseFunctionHandler {
     }
 
 
-    // Get workout by ID - GET /api/workouts/byId/{id}
+    // Get workout by ID - GET /api/workouts/{id}
     @FunctionName("GetWorkoutById")
     public HttpResponseMessage getWorkoutById(
             @HttpTrigger(
                     name = "req",
                     methods = {HttpMethod.GET, HttpMethod.OPTIONS},
-                    route = "workouts/byId/{id}",
+                    route = "workouts/by/{id}",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<Optional<String>> request,
             @BindingName("id") String id,
@@ -258,6 +258,53 @@ public class WorkoutFunctions extends BaseFunctionHandler {
             cosmosDBService.update("workouts", workout, workout.getUserId(), Workout.class);
 
             return createResponse(request, newExercise);
+        } catch (Exception e) {
+            return handleException(request, e);
+        }
+    }
+
+
+    // Update workout - PUT /api/workouts/{id}
+    @FunctionName("UpdateWorkout")
+    public HttpResponseMessage updateWorkout(
+            @HttpTrigger(
+                    name = "req",
+                    methods = {HttpMethod.PUT, HttpMethod.OPTIONS},
+                    route = "workouts/update/{id}",
+                    authLevel = AuthorizationLevel.ANONYMOUS)
+            HttpRequestMessage<String> request,
+            @BindingName("id") String id,
+            final ExecutionContext context) {
+
+        context.getLogger().info("Updating workout: " + id);
+
+        if (request.getHttpMethod() == HttpMethod.OPTIONS) {
+            return handleCors(request);
+        }
+
+        try {
+            validateToken(request);
+
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            com.fasterxml.jackson.databind.JsonNode jsonNode = mapper.readTree(request.getBody());
+
+            String name = jsonNode.get("name").asText();
+            int rest = jsonNode.get("rest").asInt();
+
+            String query = String.format("SELECT * FROM c WHERE c.id = '%s'", id);
+            List<Workout> workouts = cosmosDBService.query("workouts", query, Workout.class);
+
+            if (workouts.isEmpty()) {
+                return createErrorResponse(request, HttpStatus.NOT_FOUND, "Workout not found");
+            }
+
+            Workout workout = workouts.get(0);
+            workout.setName(name);
+            workout.setRest(rest);
+
+            Workout updatedWorkout = cosmosDBService.update("workouts", workout, workout.getUserId(), Workout.class);
+
+            return createResponse(request, updatedWorkout);
         } catch (Exception e) {
             return handleException(request, e);
         }

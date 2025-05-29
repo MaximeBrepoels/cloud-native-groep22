@@ -1,5 +1,6 @@
 package cloudnative.fitapp.functions;
 
+import cloudnative.fitapp.domain.Set;
 import cloudnative.fitapp.security.SimplePasswordEncoder;
 import com.microsoft.azure.functions.*;
 import com.microsoft.azure.functions.annotation.*;
@@ -96,7 +97,7 @@ public class ExerciseFunctions extends BaseFunctionHandler {
             @HttpTrigger(
                     name = "req",
                     methods = {HttpMethod.GET, HttpMethod.OPTIONS},
-                    route = "exercises/byId/{id}",
+                    route = "exercises/{id}",
                     authLevel = AuthorizationLevel.ANONYMOUS)
             HttpRequestMessage<Optional<String>> request,
             @BindingName("id") String id,
@@ -136,7 +137,7 @@ public class ExerciseFunctions extends BaseFunctionHandler {
             @BindingName("id") String id,
             final ExecutionContext context) {
 
-        context.getLogger().info("Updating exercise: " + id);
+        context.getLogger().info("Updating exercise (simple route): " + id);
 
         if (request.getHttpMethod() == HttpMethod.OPTIONS) {
             return handleCors(request);
@@ -144,7 +145,22 @@ public class ExerciseFunctions extends BaseFunctionHandler {
 
         try {
             validateToken(request);
+
+            // Add debug logging
+            String requestBody = request.getBody();
+            context.getLogger().info("Request body: " + requestBody);
+
             Exercise exercise = parseBody(request, Exercise.class);
+
+            // Log the parsed exercise
+            context.getLogger().info("Parsed exercise name: " + exercise.getName());
+            context.getLogger().info("Parsed exercise sets count: " + (exercise.getSets() != null ? exercise.getSets().size() : "null"));
+            if (exercise.getSets() != null) {
+                for (int i = 0; i < exercise.getSets().size(); i++) {
+                    Set set = exercise.getSets().get(i);
+                    context.getLogger().info("Set " + i + ": reps=" + set.getReps() + ", weight=" + set.getWeight() + ", duration=" + set.getDuration());
+                }
+            }
 
             SimplePasswordEncoder passwordEncoder = new SimplePasswordEncoder();
             UserService userService = new UserService(cosmosDBService, passwordEncoder);
@@ -152,8 +168,14 @@ public class ExerciseFunctions extends BaseFunctionHandler {
             ExerciseService exerciseService = new ExerciseService(cosmosDBService, workoutService);
 
             Exercise updatedExercise = exerciseService.updateExercise(Long.parseLong(id), exercise);
+
+            // Log the result
+            context.getLogger().info("Updated exercise sets count: " + (updatedExercise.getSets() != null ? updatedExercise.getSets().size() : "null"));
+
             return createResponse(request, updatedExercise);
         } catch (Exception e) {
+            context.getLogger().severe("Error updating exercise: " + e.getMessage());
+            e.printStackTrace();
             return handleException(request, e);
         }
     }
