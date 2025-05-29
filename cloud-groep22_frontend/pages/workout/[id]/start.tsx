@@ -63,12 +63,17 @@ const WorkoutFlow: React.FC = () => {
         let updatedExercises = exercises.map((exercise) => {
             if (exercise.autoIncrease) {
                 const sets = [];
-                for (let i = 0; i < exercise.autoIncreaseCurrentSets; i++) {
+                const currentSets = exercise.autoIncreaseCurrentSets || 3;
+                const currentWeight = exercise.autoIncreaseCurrentWeight !== undefined ? exercise.autoIncreaseCurrentWeight : 0;
+                const currentReps = exercise.autoIncreaseCurrentReps !== undefined ? exercise.autoIncreaseCurrentReps : 0;
+                const currentDuration = exercise.autoIncreaseCurrentDuration !== undefined ? exercise.autoIncreaseCurrentDuration : 0;
+
+                for (let i = 0; i < currentSets; i++) {
                     sets.push({
                         id: i,
-                        weight: exercise.autoIncreaseCurrentWeight || 0,
-                        reps: exercise.autoIncreaseCurrentReps || 0,
-                        duration: exercise.autoIncreaseCurrentDuration || 0,
+                        weight: currentWeight,
+                        reps: currentReps,
+                        duration: currentDuration,
                     });
                 }
                 return { ...exercise, sets };
@@ -80,11 +85,14 @@ const WorkoutFlow: React.FC = () => {
         setSetsGenerated(true);
     };
 
+
     useEffect(() => {
         if (exercises.length > 0 && !setsGenerated) {
-            generateAutoIncreaseSets();
+            const timeoutId = setTimeout(() => {
+                generateAutoIncreaseSets();
+            }, 100);
+            return () => clearTimeout(timeoutId);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [exercises]);
 
     const handleSessionError = () => {
@@ -346,10 +354,10 @@ const WorkoutFlow: React.FC = () => {
                                 </div>
                             ) : (
                                 <div className="text-4xl font-bold mb-2 color-title-workout-card">
-                                    {currentExercise.type === "WEIGHTS" && currentExercise.sets[currentSetIndex] &&
-                                        `${currentExercise.sets[currentSetIndex].weight}kg ${currentExercise.sets[currentSetIndex].reps}reps`}
-                                    {currentExercise.type === "BODYWEIGHT" && currentExercise.sets[currentSetIndex] &&
-                                        `${currentExercise.sets[currentSetIndex].reps} reps`}
+                                    {currentExercise.type === "WEIGHTS" && currentExercise.sets && currentExercise.sets[currentSetIndex] &&
+                                        `${currentExercise.sets[currentSetIndex].weight || 0}kg ${currentExercise.sets[currentSetIndex].reps || 0}reps`}
+                                    {currentExercise.type === "BODYWEIGHT" && currentExercise.sets && currentExercise.sets[currentSetIndex] &&
+                                        `${currentExercise.sets[currentSetIndex].reps || 0} reps`}
                                 </div>
                             )}
                             <div className="text-xl text-white">{currentExercise.name}</div>
