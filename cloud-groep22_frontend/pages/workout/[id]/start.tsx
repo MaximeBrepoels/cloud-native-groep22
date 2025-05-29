@@ -66,9 +66,9 @@ const WorkoutFlow: React.FC = () => {
                 for (let i = 0; i < exercise.autoIncreaseCurrentSets; i++) {
                     sets.push({
                         id: i,
-                        weight: exercise.autoIncreaseCurrentWeight,
-                        reps: exercise.autoIncreaseCurrentReps,
-                        duration: exercise.autoIncreaseCurrentDuration,
+                        weight: exercise.autoIncreaseCurrentWeight || 0,
+                        reps: exercise.autoIncreaseCurrentReps || 0,
+                        duration: exercise.autoIncreaseCurrentDuration || 0,
                     });
                 }
                 return { ...exercise, sets };
@@ -346,10 +346,10 @@ const WorkoutFlow: React.FC = () => {
                                 </div>
                             ) : (
                                 <div className="text-4xl font-bold mb-2 color-title-workout-card">
-                                    {currentExercise.type === "WEIGHTS" &&
-                                        `${currentExercise.sets[currentSetIndex]?.weight}kg ${currentExercise.sets[currentSetIndex]?.reps}reps`}
-                                    {currentExercise.type === "BODYWEIGHT" &&
-                                        `${currentExercise.sets[currentSetIndex]?.reps} reps`}
+                                    {currentExercise.type === "WEIGHTS" && currentExercise.sets[currentSetIndex] &&
+                                        `${currentExercise.sets[currentSetIndex].weight}kg ${currentExercise.sets[currentSetIndex].reps}reps`}
+                                    {currentExercise.type === "BODYWEIGHT" && currentExercise.sets[currentSetIndex] &&
+                                        `${currentExercise.sets[currentSetIndex].reps} reps`}
                                 </div>
                             )}
                             <div className="text-xl text-white">{currentExercise.name}</div>

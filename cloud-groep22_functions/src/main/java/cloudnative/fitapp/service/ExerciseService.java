@@ -21,7 +21,6 @@ public class ExerciseService {
     }
 
     public List<Exercise> getAllExercises() {
-        // Get all workouts and extract exercises
         List<Workout> workouts = cosmosDBService.findAll("workouts", Workout.class);
         List<Exercise> allExercises = new ArrayList<>();
         
@@ -77,19 +76,16 @@ public class ExerciseService {
         exercise.setWorkout(workout);
         exercise.setId(String.valueOf(System.currentTimeMillis() + (int)(Math.random() * 1000)));
 
-        // Add to workout's exercise list
         if (workout.getExercises() == null) {
             workout.setExercises(new ArrayList<>());
         }
         workout.getExercises().add(exercise);
 
-        // Save the workout (which contains the exercise)
         cosmosDBService.update("workouts", workout, workout.getUserId(), Workout.class);
         return exercise;
     }
 
     public Exercise createExerciseByName(String exerciseName) {
-        // Create a standalone exercise with temporary ID
         Exercise exercise = new Exercise(exerciseName);
         exercise.setId(String.valueOf(System.currentTimeMillis() + (int)(Math.random() * 1000)));
         return exercise;
@@ -143,7 +139,17 @@ public class ExerciseService {
         exercise.setAutoIncreaseCurrentWeight(newValuesExercise.getAutoIncreaseCurrentWeight());
         exercise.setAutoIncreaseCurrentDuration(newValuesExercise.getAutoIncreaseCurrentDuration());
 
-        // Save the parent workout to persist changes
+        if (newValuesExercise.getSets() != null) {
+            exercise.setSets(new ArrayList<>());
+
+            for (Set set : newValuesExercise.getSets()) {
+                Set newSet = new Set(set.getReps(), set.getWeight(), set.getDuration());
+                newSet.setId(set.getId());
+                newSet.setExercise(exercise);
+                exercise.getSets().add(newSet);
+            }
+        }
+
         cosmosDBService.update("workouts", workout, workout.getUserId(), Workout.class);
         return exercise;
     }
@@ -151,12 +157,40 @@ public class ExerciseService {
     public Exercise autoIncrease(Long id) {
         Exercise exercise = getExerciseById(id);
 
+        if (exercise.getType() == WorkoutType.WEIGHTS) {
+            double currentWeight = exercise.getAutoIncreaseCurrentWeight();
+            double newWeight = currentWeight + exercise.getAutoIncreaseWeightStep();
+            exercise.setAutoIncreaseCurrentWeight(newWeight);
+
+            Progress progress = new Progress(newWeight, new Date());
+            exercise.addProgress(progress);
+        } else if (exercise.getType() == WorkoutType.DURATION) {
+            int currentDuration = exercise.getAutoIncreaseCurrentDuration();
+            int newDuration = (int)(currentDuration * exercise.getAutoIncreaseFactor());
+            exercise.setAutoIncreaseCurrentDuration(newDuration);
+
+            Progress progress = new Progress(newDuration, new Date());
+            exercise.addProgress(progress);
+        }
+
         cosmosDBService.update("workouts", exercise.getWorkout(), exercise.getWorkout().getUserId(), Workout.class);
         return exercise;
     }
 
     public Exercise autoDecrease(Long id) {
         Exercise exercise = getExerciseById(id);
+
+        if (exercise.getType() == WorkoutType.WEIGHTS) {
+            double currentWeight = exercise.getAutoIncreaseCurrentWeight();
+            double newWeight = Math.max(exercise.getAutoIncreaseStartWeight(),
+                    currentWeight - exercise.getAutoIncreaseWeightStep());
+            exercise.setAutoIncreaseCurrentWeight(newWeight);
+        } else if (exercise.getType() == WorkoutType.DURATION) {
+            int currentDuration = exercise.getAutoIncreaseCurrentDuration();
+            int newDuration = Math.max(exercise.getAutoIncreaseStartDuration(),
+                    (int)(currentDuration / exercise.getAutoIncreaseFactor()));
+            exercise.setAutoIncreaseCurrentDuration(newDuration);
+        }
 
         cosmosDBService.update("workouts", exercise.getWorkout(), exercise.getWorkout().getUserId(), Workout.class);
         return exercise;
