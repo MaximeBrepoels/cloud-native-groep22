@@ -7,6 +7,10 @@
     "start:all": "concurrently \"npm run start:frontend\" \"npm run start:backend\""
   },
   "devDependencies": {
+    "@types/node": "^24.0.1",
     "concurrently": "^8.0.0"
+  },
+  "dependencies": {
+    "axios": "^1.10.0"
   }
 }

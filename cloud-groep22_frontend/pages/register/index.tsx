@@ -21,7 +21,7 @@ const Register: React.FC = () => {
             return;
         }
         const response = await authenticationService.register(name, email, password);
-        if (response && response.status === 200) {
+        if (response && (response.status === 200 || response.status === 201)) {
             router.push("/login");
         } else if (response && response.data && response.data.message) {
             setError(response.data.message);
