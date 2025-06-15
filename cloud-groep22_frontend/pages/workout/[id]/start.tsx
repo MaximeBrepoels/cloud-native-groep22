@@ -17,6 +17,7 @@ const WorkoutFlow: React.FC = () => {
     const [isCompletedScreen, setIsCompletedScreen] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [userId, setUserId] = useState<number | null>(null);
+    const [setResults, setSetResults] = useState<boolean[]>([]);
 
     const workoutService = new WorkoutService();
     const exerciseService = new ExerciseService();
@@ -104,45 +105,55 @@ const WorkoutFlow: React.FC = () => {
         }
     };
 
-    const changeDifficulty = async (setResults: boolean[]) => {
-        if (setResults.includes(false)) {
-            await decreaseDifficulty();
-        } else if (setResults.length > 0) {
-            await increaseDifficulty();
+    const changeDifficulty = async () => {
+        if (setResults.length > 0) {
+            if (setResults.includes(false)) {
+                await decreaseDifficulty();
+            } else {
+                await increaseDifficulty();
+            }
         }
     };
 
+    const moveToNextExercise = () => {
+        setCurrentSetIndex(0);
+        setCurrentExerciseIndex((prev) => prev + 1);
+        const nextExercise = exercises[currentExerciseIndex + 1];
+        if (nextExercise) startRest(nextExercise.rest);
+    };
+
     const handleSuccess = async () => {
+        setSetResults((prev) => [...prev, true]);
         const currentExercise = exercises[currentExerciseIndex];
         if (currentSetIndex < currentExercise.sets.length - 1) {
             setCurrentSetIndex((prev) => prev + 1);
             startRest(currentExercise.rest);
         } else if (currentExerciseIndex < exercises.length - 1) {
-            // Move to next exercise
-            setCurrentSetIndex(0);
-            setCurrentExerciseIndex((prev) => prev + 1);
-            const nextExercise = exercises[currentExerciseIndex + 1];
-            if (nextExercise) startRest(nextExercise.rest);
+            await changeDifficulty();
+            moveToNextExercise();
+            setSetResults([]);
         } else {
+            await changeDifficulty();
             completeWorkout();
         }
     };
 
     const handleFail = async () => {
+        setSetResults((prev) => [...prev, false]);
         const currentExercise = exercises[currentExerciseIndex];
         if (currentSetIndex < currentExercise.sets.length - 1) {
             setCurrentSetIndex((prev) => prev + 1);
             startRest(currentExercise.rest);
         } else if (currentExerciseIndex < exercises.length - 1) {
-            // Move to next exercise
-            setCurrentSetIndex(0);
-            setCurrentExerciseIndex((prev) => prev + 1);
-            const nextExercise = exercises[currentExerciseIndex + 1];
-            if (nextExercise) startRest(nextExercise.rest);
+            await changeDifficulty();
+            moveToNextExercise();
+            setSetResults([]);
         } else {
+            await changeDifficulty();
             completeWorkout();
         }
     };
+
 
     const completeWorkout = () => {
         if (userId) userService.updateStreakProgress(userId);

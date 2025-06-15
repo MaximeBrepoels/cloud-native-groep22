@@ -27,9 +27,7 @@
     <option name="subscription" />
     <method v="2">
       <option name="Make" enabled="true" />
-      <option name="ConnectionRunnerForConfigurationId" enabled="false">
-        <option name="envFile" value="$PROJECT_DIR$/cloud-groep22_functions/.azure/default/.env" />
-      </option>
+      <option name="ConnectionRunnerForConfigurationId" enabled="false" />
     </method>
   </configuration>
 </component>
