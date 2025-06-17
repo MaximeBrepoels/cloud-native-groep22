@@ -5,8 +5,10 @@
   "scripts": {
     "dev": "next dev -p 8080",
     "build": "next build",
+    "build:static": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "deploy": "npm run build:static && az storage blob upload-batch --account-name cloudgroep22storage --auth-mode key --destination '$web' --source out --overwrite"
   },
   "dependencies": {
     "axios": "^1.9.0",
