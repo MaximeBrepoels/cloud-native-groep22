@@ -108,7 +108,7 @@ const LoginForm: React.FC = () => {
             <div className="w-full flex flex-col items-center">
                 <button
                     type="button"
-                    className="text-blue-500 underline"
+                    className="text-blue-500 underline cursor-pointer"
                     onClick={() => router.push("/register")}
                 >
                     Don't have an account? Register here!
