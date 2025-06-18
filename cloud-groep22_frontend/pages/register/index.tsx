@@ -26,7 +26,7 @@ const Register: React.FC = () => {
     const [processing, setProcessing] = useState("");
 
     // Name input field
-    const handleNameChange = (nameValue: string): string => {
+    const handleNameChange = (nameValue: string)=> {
         setName(nameValue);
         if (nameError && nameValue.trim()) {
             setNameError("");
