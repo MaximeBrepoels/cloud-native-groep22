@@ -9,10 +9,71 @@ const Register: React.FC = () => {
     const router = useRouter();
 
     const [name, setName] = useState("");
+    // Email
+    const [nameError, setNameError] = useState("");
     const [email, setEmail] = useState("");
+    const [emailError, setEmailError] = useState("");
+    const [emailTouched, setEmailTouched] = useState(false);
+    // Password
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
+    const [passwordError, setPasswordError] = useState("");
+    const [passwordTouched, setPasswordTouched] = useState(false);
     const [error, setError] = useState("");
+
+    // Email input field
+    const emailValidation = (emailValue: string): string => {
+        if (!emailValue) {
+            return "Email is required.";
+        }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(emailValue)) {
+            return "Please enter a valid email address.";
+        }
+        return "";
+    };
+
+    const handleEmailBlur = () => {
+        setEmailTouched(true);
+        setEmailError(emailValidation(email))
+    };
+
+    const handleEmailChange = (emailValue: string) => {
+        setEmail(emailValue);
+        if (emailTouched) {
+            setEmailError(validateEmail(emailValue));
+        }
+    };
+
+
+    // Password input field
+    const passwordValidation = (passwordValue: string): string => {
+        if (!passwordValue) {
+            return"Password is required."
+        }
+        if (passwordValue.length < 8) {
+            return "Password must be at least 8 characters.";
+        }
+        const uppercaseRegex = /[A-Z]/;
+        const numberRegex = /[0-9]/;
+        if (!uppercaseRegex.test(passwordValue) || !numberRegex.test(passwordValue)) {
+            return "Password must contain at least one uppercase letter and one number.";
+        }
+        return "";
+    };
+
+    const handlePasswordBlur = () => {
+      setPasswordTouched(true);
+      setPasswordError(passwordValidation(password));
+    };
+
+    const handlePasswordChange = (passwordValue: string) => {
+        setPassword(passwordValue);
+        if (passwordTouched) {
+            setPasswordError(passwordValidation(passwordValue))
+        }
+    };
+
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -69,8 +130,12 @@ const Register: React.FC = () => {
                                     type="email"
                                     placeholder="Email"
                                     value={email}
-                                    onChange={e => setEmail(e.target.value)}
+                                    onBlur={handleEmailBlur}
+                                    onChange={e => handleEmailChange(e.target.value)}
                                 />
+                                {emailTouched && emailError && (
+                                    <div className="text-red-600">{emailError}</div>
+                                )}
                             </div>
                             <div className="w-full px-8">
                                 <label htmlFor="password" className="text-white text-xl mb-2 block">
@@ -82,8 +147,12 @@ const Register: React.FC = () => {
                                     type="password"
                                     placeholder="Password"
                                     value={password}
-                                    onChange={e => setPassword(e.target.value)}
+                                    onBlur={handlePasswordBlur}
+                                    onChange={e => handlePasswordChange(e.target.value)}
                                 />
+                                {passwordTouched && passwordError && (
+                                    <div className="text-red-600">{passwordError}</div>
+                                )}
                             </div>
                             <div className="w-full px-8">
                                 <label htmlFor="confirmPassword" className="text-white text-xl mb-2 block">
