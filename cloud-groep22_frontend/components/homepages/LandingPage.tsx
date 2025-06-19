@@ -9,7 +9,6 @@ const LandingPage: React.FC = () => (
             <title>FitApp - Track Your Fitness</title>
             <meta name="description" content="Track your workouts, monitor your progress, and stay motivated" />
             <meta name="viewport" content="width=device-width, initial-scale=1" />
-            <link rel="icon" href="/favicon.ico" />
         </Head>
         <div className="max-h-screen flex flex-col bg-custom-blue">
             <main className="flex-1 text-center md:p-24 pb-0 m-0 mt-16">

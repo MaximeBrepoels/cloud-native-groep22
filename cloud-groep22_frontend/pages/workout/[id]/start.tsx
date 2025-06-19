@@ -16,9 +16,8 @@ const WorkoutFlow: React.FC = () => {
     const [isReadyScreen, setIsReadyScreen] = useState(true);
     const [isCompletedScreen, setIsCompletedScreen] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
-    const [setsGenerated, setSetsGenerated] = useState(false);
-    const [setResults, setSetResults] = useState<boolean[]>([]);
     const [userId, setUserId] = useState<number | null>(null);
+    const [setResults, setSetResults] = useState<boolean[]>([]);
 
     const workoutService = new WorkoutService();
     const exerciseService = new ExerciseService();
@@ -32,6 +31,32 @@ const WorkoutFlow: React.FC = () => {
         else router.push("/login");
     }, [router]);
 
+    const removeExerciseWithoutSets = (exs: Exercise[]) =>
+        exs.filter((exercise) => exercise.sets.length > 0);
+
+    const generateAutoIncreaseSets = (exerciseList: Exercise[]) => {
+        return exerciseList.map((exercise) => {
+            if (exercise.autoIncrease) {
+                const sets = [];
+                const currentSets = exercise.autoIncreaseCurrentSets || 3;
+                const currentWeight = exercise.autoIncreaseCurrentWeight !== undefined ? exercise.autoIncreaseCurrentWeight : 0;
+                const currentReps = exercise.autoIncreaseCurrentReps !== undefined ? exercise.autoIncreaseCurrentReps : 0;
+                const currentDuration = exercise.autoIncreaseCurrentDuration !== undefined ? exercise.autoIncreaseCurrentDuration : 0;
+
+                for (let i = 0; i < currentSets; i++) {
+                    sets.push({
+                        id: i,
+                        weight: currentWeight,
+                        reps: currentReps,
+                        duration: currentDuration,
+                    });
+                }
+                return { ...exercise, sets };
+            }
+            return exercise;
+        });
+    };
+
     const getExercises = async () => {
         try {
             const response = await workoutService.getWorkoutById(Number(workoutId));
@@ -39,7 +64,12 @@ const WorkoutFlow: React.FC = () => {
                 handleSessionError();
             } else {
                 setTitle(response.data.name);
-                setExercises(response.data.exercises);
+
+                // Generate sets immediately after getting exercises
+                let processedExercises = generateAutoIncreaseSets(response.data.exercises);
+                processedExercises = removeExerciseWithoutSets(processedExercises);
+
+                setExercises(processedExercises);
             }
         } catch (error) {
             alert("Failed to load workout.");
@@ -55,37 +85,6 @@ const WorkoutFlow: React.FC = () => {
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [workoutId]);
-
-    const removeExerciseWithoutSets = (exs: Exercise[]) =>
-        exs.filter((exercise) => exercise.sets.length > 0);
-
-    const generateAutoIncreaseSets = () => {
-        let updatedExercises = exercises.map((exercise) => {
-            if (exercise.autoIncrease) {
-                const sets = [];
-                for (let i = 0; i < exercise.autoIncreaseCurrentSets; i++) {
-                    sets.push({
-                        id: i,
-                        weight: exercise.autoIncreaseCurrentWeight,
-                        reps: exercise.autoIncreaseCurrentReps,
-                        duration: exercise.autoIncreaseCurrentDuration,
-                    });
-                }
-                return { ...exercise, sets };
-            }
-            return exercise;
-        });
-        updatedExercises = removeExerciseWithoutSets(updatedExercises);
-        setExercises(updatedExercises);
-        setSetsGenerated(true);
-    };
-
-    useEffect(() => {
-        if (exercises.length > 0 && !setsGenerated) {
-            generateAutoIncreaseSets();
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [exercises]);
 
     const handleSessionError = () => {
         sessionStorage.removeItem("session_id");
@@ -107,11 +106,20 @@ const WorkoutFlow: React.FC = () => {
     };
 
     const changeDifficulty = async () => {
-        if (setResults.includes(false)) {
-            await decreaseDifficulty();
-        } else if (setResults.length > 0) {
-            await increaseDifficulty();
+        if (setResults.length > 0) {
+            if (setResults.includes(false)) {
+                await decreaseDifficulty();
+            } else {
+                await increaseDifficulty();
+            }
         }
+    };
+
+    const moveToNextExercise = () => {
+        setCurrentSetIndex(0);
+        setCurrentExerciseIndex((prev) => prev + 1);
+        const nextExercise = exercises[currentExerciseIndex + 1];
+        if (nextExercise) startRest(nextExercise.rest);
     };
 
     const handleSuccess = async () => {
@@ -146,12 +154,6 @@ const WorkoutFlow: React.FC = () => {
         }
     };
 
-    const moveToNextExercise = () => {
-        setCurrentSetIndex(0);
-        setCurrentExerciseIndex((prev) => prev + 1);
-        const nextExercise = exercises[currentExerciseIndex + 1];
-        if (nextExercise) startRest(nextExercise.rest);
-    };
 
     const completeWorkout = () => {
         if (userId) userService.updateStreakProgress(userId);
@@ -163,6 +165,7 @@ const WorkoutFlow: React.FC = () => {
     };
 
     const currentExercise = exercises[currentExerciseIndex];
+    const currentSet = currentExercise?.sets?.[currentSetIndex];
 
     useEffect(() => {
         let interval: NodeJS.Timeout | null = null;
@@ -170,20 +173,20 @@ const WorkoutFlow: React.FC = () => {
             interval = setInterval(() => setTimer((prev) => prev - 1), 1000);
         } else if (timer === 0 && isResting) {
             setIsResting(false);
-            if (currentExercise?.type === "DURATION") {
-                setTimer(currentExercise.sets[currentSetIndex]?.duration || 0);
+            if (currentExercise?.type === "DURATION" && currentSet) {
+                setTimer(currentSet.duration || 0);
             }
         }
         return () => {
             if (interval) clearInterval(interval);
         };
-    }, [timer, isResting, currentExercise, currentSetIndex]);
+    }, [timer, isResting, currentExercise, currentSet]);
 
     useEffect(() => {
-        if (!isResting && currentExercise && currentExercise.type === "DURATION") {
-            setTimer(currentExercise.sets[currentSetIndex]?.duration || 0);
+        if (!isResting && currentExercise && currentExercise.type === "DURATION" && currentSet) {
+            setTimer(currentSet.duration || 0);
         }
-    }, [currentSetIndex, currentExercise, isResting]);
+    }, [currentSetIndex, currentExercise, isResting, currentSet]);
 
     const startRest = (duration: number) => {
         setTimer(duration);
@@ -192,8 +195,8 @@ const WorkoutFlow: React.FC = () => {
 
     const skipRest = () => {
         setIsResting(false);
-        if (currentExercise?.type === "DURATION") {
-            setTimer(currentExercise.sets[currentSetIndex]?.duration || 0);
+        if (currentExercise?.type === "DURATION" && currentSet) {
+            setTimer(currentSet.duration || 0);
         }
     };
 
@@ -207,8 +210,23 @@ const WorkoutFlow: React.FC = () => {
     if (isLoading) {
         return (
             <div className="flex flex-col items-center justify-center min-h-screen bg-custom-blue">
-                <div className="text-lg mb-2">Loading workout...</div>
+                <div className="text-lg mb-2 text-white">Loading workout...</div>
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
+            </div>
+        );
+    }
+
+    // If no exercises after processing, show error
+    if (exercises.length === 0) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-screen bg-custom-blue">
+                <div className="text-lg mb-2 text-white">No exercises found in this workout.</div>
+                <button
+                    onClick={() => router.push("/")}
+                    className="bg-white text-black py-2 px-4 rounded font-semibold cursor-pointer"
+                >
+                    Go Back
+                </button>
             </div>
         );
     }
@@ -222,9 +240,9 @@ const WorkoutFlow: React.FC = () => {
                         <div className="text-2xl font-semibold color-title-workout-card">{title}</div>
                         <div className="text-l text-white">
                             set {currentSetIndex + 1}/
-                            {currentExercise.autoIncrease
+                            {currentExercise?.autoIncrease
                                 ? currentExercise.autoIncreaseCurrentSets
-                                : currentExercise.sets.length}
+                                : currentExercise?.sets.length || 0}
                             - exercise {currentExerciseIndex + 1}/{exercises.length}
                         </div>
                     </div>
@@ -250,7 +268,7 @@ const WorkoutFlow: React.FC = () => {
                         ))}
                     </div>
                     <button
-                        className="w-20 h-20 rounded-full bg-white border border-gray-300 flex items-center justify-center text-3xl font-bold text-green-500 hover:scale-105 transition-all  cursor-pointer"
+                        className="w-20 h-20 rounded-full bg-white border border-gray-300 flex items-center justify-center text-3xl font-bold text-green-500 hover:scale-105 transition-all cursor-pointer"
                         onClick={() => setIsReadyScreen(false)}
                     >
                         ✓
@@ -269,9 +287,9 @@ const WorkoutFlow: React.FC = () => {
                         <div className="text-2xl font-semibold color-title-workout-card">{title}</div>
                         <div className="text-l text-white">
                             set {currentSetIndex + 1}/
-                            {currentExercise.autoIncrease
+                            {currentExercise?.autoIncrease
                                 ? currentExercise.autoIncreaseCurrentSets
-                                : currentExercise.sets.length}
+                                : currentExercise?.sets.length || 0}
                             - exercise {currentExerciseIndex + 1}/{exercises.length}
                         </div>
                     </div>
@@ -297,10 +315,10 @@ const WorkoutFlow: React.FC = () => {
         );
     }
 
-    if (exercises.length > 0 && currentExercise) {
+    // Main workout screen
+    if (currentExercise && currentSet) {
         return (
             <div className="flex flex-col min-h-screen bg-custom-blue p-8">
-
                 {/* Header with workout name and current set and exercise info & Exit Workout button */}
                 <div className="flex flex-row justify-between w-full max-w-xl mb-8">
                     <div>
@@ -347,9 +365,9 @@ const WorkoutFlow: React.FC = () => {
                             ) : (
                                 <div className="text-4xl font-bold mb-2 color-title-workout-card">
                                     {currentExercise.type === "WEIGHTS" &&
-                                        `${currentExercise.sets[currentSetIndex]?.weight}kg ${currentExercise.sets[currentSetIndex]?.reps}reps`}
+                                        `${currentSet.weight || 0}kg ${currentSet.reps || 0}reps`}
                                     {currentExercise.type === "BODYWEIGHT" &&
-                                        `${currentExercise.sets[currentSetIndex]?.reps} reps`}
+                                        `${currentSet.reps || 0} reps`}
                                 </div>
                             )}
                             <div className="text-xl text-white">{currentExercise.name}</div>
@@ -357,7 +375,7 @@ const WorkoutFlow: React.FC = () => {
                     )}
                 </div>
                 <div className="flex flex-col items-center mt-8">
-                    {!isResting && currentExercise && (
+                    {!isResting && (
                         <>
                             <div className="mb-2 text-white">Completed set successfully?</div>
                             <div className="flex flex-row gap-4">
@@ -392,7 +410,17 @@ const WorkoutFlow: React.FC = () => {
         );
     }
 
-    return <div>No exercise found</div>;
+    return (
+        <div className="flex flex-col items-center justify-center min-h-screen bg-custom-blue">
+            <div className="text-lg mb-2 text-white">No exercise data available</div>
+            <button
+                onClick={() => router.push("/")}
+                className="bg-white text-black py-2 px-4 rounded font-semibold cursor-pointer"
+            >
+                Go Back
+            </button>
+        </div>
+    );
 };
 
 export default WorkoutFlow;

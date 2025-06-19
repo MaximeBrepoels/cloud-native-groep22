@@ -76,7 +76,7 @@ export class ExerciseService {
         }
     ): Promise<AxiosResponse<any, any>> {
         try {
-            return await this.axiosInstance.put(`/exercises/${id}`, exercise);
+            return await this.axiosInstance.put(`/exercises/update/${id}`, exercise);
         } catch (error: any) {
             return error.response;
         }

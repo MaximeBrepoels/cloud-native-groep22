@@ -137,34 +137,50 @@ const EditExerciseForm: React.FC = () => {
 
     const updateExercise = () => {
         if (exerciseIdNumber === undefined || isNaN(exerciseIdNumber) || workoutIdNumber === undefined || isNaN(workoutIdNumber)) return;
+
+        const exerciseData = {
+            name: exerciseName,
+            type: exerciseType,
+            rest: restTime,
+            autoIncrease: autoIncrease,
+            autoIncreaseFactor: increaseFactor,
+            autoIncreaseWeightStep: parseFloat(weightSteps.replace(",", ".")),
+            autoIncreaseStartWeight: parseInt(startWeight),
+            autoIncreaseMinSets: parseInt(minSets),
+            autoIncreaseMaxSets: parseInt(maxSets),
+            autoIncreaseMinReps: parseInt(minReps),
+            autoIncreaseMaxReps: parseInt(maxReps),
+            autoIncreaseStartDuration: parseInt(startDuration),
+            autoIncreaseDurationSets: parseInt(durationSets),
+            autoIncreaseCurrentSets: validateCurrentSets(parseInt(currentSets)),
+            autoIncreaseCurrentReps: validateCurrentReps(parseInt(currentReps)),
+            autoIncreaseCurrentWeight: validateCurrentWeight(parseFloat(currentWeight.replace(",", "."))),
+            autoIncreaseCurrentDuration: validateCurrentDuration(parseInt(currentDuration)),
+            sets: sets.map((set) => ({
+                id: set.id,
+                reps: set.reps,
+                weight: set.weight,
+                duration: set.duration,
+            })),
+        };
+
+        // Add debug logging
+        console.log("Updating exercise with data:", exerciseData);
+        console.log("Sets being sent:", exerciseData.sets);
+
         exerciseService
-            .updateExercise(exerciseIdNumber, {
-                name: exerciseName,
-                type: exerciseType,
-                rest: restTime,
-                autoIncrease: autoIncrease,
-                autoIncreaseFactor: increaseFactor,
-                autoIncreaseWeightStep: parseFloat(weightSteps.replace(",", ".")),
-                autoIncreaseStartWeight: parseInt(startWeight),
-                autoIncreaseMinSets: parseInt(minSets),
-                autoIncreaseMaxSets: parseInt(maxSets),
-                autoIncreaseMinReps: parseInt(minReps),
-                autoIncreaseMaxReps: parseInt(maxReps),
-                autoIncreaseStartDuration: parseInt(startDuration),
-                autoIncreaseDurationSets: parseInt(durationSets),
-                autoIncreaseCurrentSets: validateCurrentSets(parseInt(currentSets)),
-                autoIncreaseCurrentReps: validateCurrentReps(parseInt(currentReps)),
-                autoIncreaseCurrentWeight: validateCurrentWeight(parseFloat(currentWeight.replace(",", "."))),
-                autoIncreaseCurrentDuration: validateCurrentDuration(parseInt(currentDuration)),
-                sets: sets.map((set) => ({
-                    id: set.id,
-                    reps: set.reps,
-                    weight: set.weight,
-                    duration: set.duration,
-                })),
+            .updateExercise(exerciseIdNumber, exerciseData)
+            .then((response) => {
+                console.log("Update response:", response);
+                if (response.status === 200) {
+                    router.push(`/editworkout/${workoutIdNumber}`);
+                } else {
+                    console.error("Update failed:", response.data);
+                }
             })
-            .then(() => router.push(`/editworkout/${workoutIdNumber}`))
-            .catch((error) => console.error("Exercise could not be updated!", error));
+            .catch((error) => {
+                console.error("Exercise could not be updated!", error);
+            });
     };
 
     return (

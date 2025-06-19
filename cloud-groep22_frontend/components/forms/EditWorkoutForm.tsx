@@ -111,6 +111,8 @@ const EditWorkoutForm: React.FC<EditWorkoutFormProps> = ({ workoutId }) => {
     const [exerciseType, setExerciseType] = useState("WEIGHTS");
     const [error, setError] = useState("");
     const [suggestions, setSuggestions] = useState<string[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState<string | null>(null);
 
     const workoutService = new WorkoutService();
     const exerciseService = new ExerciseService();
@@ -124,13 +126,37 @@ const EditWorkoutForm: React.FC<EditWorkoutFormProps> = ({ workoutId }) => {
     const workoutIdNumber = getWorkoutIdNumber();
 
     useEffect(() => {
-        if (workoutIdNumber !== undefined && !isNaN(workoutIdNumber)) {
-            workoutService.getWorkoutById(workoutIdNumber).then((response) => {
-                setWorkoutName(response.data.name);
-                setRestTime(response.data.rest);
-                setExercises(response.data.exercises);
-            });
-        }
+        const loadWorkout = async () => {
+            if (workoutIdNumber !== undefined && !isNaN(workoutIdNumber)) {
+                try {
+                    setLoading(true);
+                    setLoadError(null);
+
+                    const response = await workoutService.getWorkoutById(workoutIdNumber);
+
+                    if (response.status === 200) {
+                        setWorkoutName(response.data.name || "");
+                        setRestTime(response.data.rest || 60);
+                        setExercises(response.data.exercises || []);
+                    } else {
+                        setLoadError(`Failed to load workout: ${response.data?.message || 'Unknown error'}`);
+                        setExercises([]);
+                    }
+                } catch (error: any) {
+                    console.error("Error loading workout:", error);
+                    setLoadError(`Error loading workout: ${error.message}`);
+                    setExercises([]);
+                } finally {
+                    setLoading(false);
+                }
+            } else {
+                setLoading(false);
+                setLoadError("Invalid workout ID");
+                setExercises([]);
+            }
+        };
+
+        loadWorkout();
     }, [workoutIdNumber]);
 
     const handleExerciseNameChange = (name: string) => {
@@ -147,39 +173,69 @@ const EditWorkoutForm: React.FC<EditWorkoutFormProps> = ({ workoutId }) => {
         setSuggestions([]);
     };
 
-    const updateWorkout = () => {
+    const updateWorkout = async () => {
         if (workoutIdNumber === undefined || isNaN(workoutIdNumber)) return;
-        workoutService
-            .updateWorkout(
+
+        try {
+            const response = await workoutService.updateWorkout(
                 workoutIdNumber,
                 workoutName,
                 restTime,
                 exercises.map((e) => e.id)
-            )
-            .then(() => router.push("/"));
+            );
+
+            if (response.status === 200) {
+                router.push("/");
+            } else {
+                setError(`Failed to update workout: ${response.data?.message || 'Unknown error'}`);
+            }
+        } catch (error: any) {
+            setError(`Error updating workout: ${error.message}`);
+        }
     };
 
-    const createExercise = () => {
+    const createExercise = async () => {
         if (exerciseName.trim() === "") {
             setError("Exercise name cannot be empty");
             return;
         }
         if (workoutIdNumber === undefined || isNaN(workoutIdNumber)) return;
-        workoutService
-            .addExercise(workoutIdNumber, { name: exerciseName, type: exerciseType }, exerciseGoal)
-            .then((response) => {
+
+        try {
+            const response = await workoutService.addExercise(
+                workoutIdNumber,
+                { name: exerciseName, type: exerciseType },
+                exerciseGoal
+            );
+
+            if (response.status === 200) {
                 setExercises([...exercises, response.data]);
-            });
-        setModalVisible(false);
-        setExerciseName("");
-        setExerciseGoal("POWER");
-        setExerciseType("WEIGHTS");
-        setError("");
+                setModalVisible(false);
+                setExerciseName("");
+                setExerciseGoal("POWER");
+                setExerciseType("WEIGHTS");
+                setError("");
+            } else {
+                setError(`Failed to create exercise: ${response.data?.message || 'Unknown error'}`);
+            }
+        } catch (error: any) {
+            setError(`Error creating exercise: ${error.message}`);
+        }
     };
 
-    const deleteWorkout = () => {
+    const deleteWorkout = async () => {
         if (workoutIdNumber === undefined || isNaN(workoutIdNumber)) return;
-        workoutService.deleteWorkout(workoutIdNumber).then(() => router.push("/"));
+
+        try {
+            const response = await workoutService.deleteWorkout(workoutIdNumber);
+            if (response.status === 204 || response.status === 200) {
+                router.push("/");
+            } else {
+                setError(`Failed to delete workout: ${response.data?.message || 'Unknown error'}`);
+            }
+        } catch (error: any) {
+            setError(`Error deleting workout: ${error.message}`);
+        }
     };
 
     const moveItem = (index: number, direction: "up" | "down") => {
@@ -190,24 +246,28 @@ const EditWorkoutForm: React.FC<EditWorkoutFormProps> = ({ workoutId }) => {
         setExercises(newExercises);
     };
 
-    const deleteExercise = (exerciseId: string | number) => {
+    const deleteExercise = async (exerciseId: string | number) => {
         if (workoutIdNumber === undefined || isNaN(workoutIdNumber)) return;
         const exerciseIdNumber = Number(exerciseId);
         if (isNaN(exerciseIdNumber)) return;
-        exerciseService
-            .deleteExerciseFromWorkout(workoutIdNumber, exerciseIdNumber)
-            .then(() => {
-                // Fetch updated workout to get the latest exercises
-                workoutService.getWorkoutById(workoutIdNumber).then((response) => {
-                    setExercises(response.data.exercises);
-                });
-            })
-            .catch((error) => {
-                console.error("Exercise could not be deleted!", error);
-            });
+
+        try {
+            const response = await exerciseService.deleteExerciseFromWorkout(workoutIdNumber, exerciseIdNumber);
+
+            if (response.status === 200) {
+                const workoutResponse = await workoutService.getWorkoutById(workoutIdNumber);
+                if (workoutResponse.status === 200) {
+                    setExercises(workoutResponse.data.exercises || []);
+                }
+            } else {
+                setError(`Failed to delete exercise: ${response.data?.message || 'Unknown error'}`);
+            }
+        } catch (error: any) {
+            console.error("Exercise could not be deleted!", error);
+            setError(`Error deleting exercise: ${error.message}`);
+        }
     };
 
-    // Prevent background scroll when modal is open
     useEffect(() => {
         if (isModalVisible) {
             document.body.style.overflow = "hidden";
@@ -218,6 +278,30 @@ const EditWorkoutForm: React.FC<EditWorkoutFormProps> = ({ workoutId }) => {
             document.body.style.overflow = "";
         };
     }, [isModalVisible]);
+
+    if (loading) {
+        return (
+            <div className="w-full flex flex-col items-center justify-center p-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-4"></div>
+                <p className="text-white">Loading workout...</p>
+            </div>
+        );
+    }
+
+    // Show error state
+    if (loadError) {
+        return (
+            <div className="w-full flex flex-col items-center justify-center p-8">
+                <div className="text-red-500 mb-4">❌ {loadError}</div>
+                <button
+                    onClick={() => router.push("/")}
+                    className="bg-white text-black py-2 px-4 rounded font-semibold cursor-pointer"
+                >
+                    Go Back
+                </button>
+            </div>
+        );
+    }
 
     return (
         <form className="w-full flex flex-col items-start">
@@ -235,39 +319,51 @@ const EditWorkoutForm: React.FC<EditWorkoutFormProps> = ({ workoutId }) => {
                 onChange={(e) => setRestTime(Number(e.target.value))}
             />
             <label className="font-medium mt-2">Exercises</label>
-            {exercises.map((exercise, index) => (
-                <div key={exercise.id} className="flex items-center w-full mb-4 gap-2">
-                    <ExerciseCard exercise={exercise} workoutId={workoutId} />
-                    <div className="flex flex-col gap-1">
+
+            {/* Show message if no exercises */}
+            {exercises.length === 0 ? (
+                <p className="text-gray-500 mb-4">No exercises added yet. Add your first exercise below!</p>
+            ) : (
+                exercises.map((exercise, index) => (
+                    <div key={exercise.id} className="flex items-center w-full mb-4 gap-2">
+                        <ExerciseCard exercise={exercise} workoutId={workoutId} />
+                        <div className="flex flex-col gap-1">
+                            <button
+                                type="button"
+                                className={`p-2 border rounded ${index === 0 ? "opacity-50" : ""}`}
+                                onClick={() => moveItem(index, "up")}
+                                disabled={index === 0}
+                            >
+                                ↑
+                            </button>
+                            <button
+                                type="button"
+                                className={`p-2 border rounded ${index === exercises.length - 1 ? "opacity-50" : ""}`}
+                                onClick={() => moveItem(index, "down")}
+                                disabled={index === exercises.length - 1}
+                            >
+                                ↓
+                            </button>
+                        </div>
                         <button
                             type="button"
-                            className={`p-2 border rounded ${index === 0 ? "opacity-50" : ""}`}
-                            onClick={() => moveItem(index, "up")}
-                            disabled={index === 0}
+                            className="ml-2 text-red-600 hover: cursor-pointer"
+                            onClick={() => deleteExercise(exercise.id)}
                         >
-                            ↑
-                        </button>
-                        <button
-                            type="button"
-                            className={`p-2 border rounded ${index === exercises.length - 1 ? "opacity-50" : ""}`}
-                            onClick={() => moveItem(index, "down")}
-                            disabled={index === exercises.length - 1}
-                        >
-                            ↓
+                            ✕
                         </button>
                     </div>
-                    <button
-                        type="button"
-                        className="ml-2 text-red-600 hover: cursor-pointer"
-                        onClick={() => deleteExercise(exercise.id)}
-                    >
-                        ✕
-                    </button>
-                </div>
-            ))}
+                ))
+            )}
+
             <div className="w-full flex justify-center">
                 <AddExerciseButton onClick={() => setModalVisible(true)} />
             </div>
+
+            {error && (
+                <div className="text-red-600 mt-2 mb-2 w-full text-center">{error}</div>
+            )}
+
             <div className="flex gap-4 mt-8 w-full">
                 <button
                     type="button"
@@ -363,6 +459,7 @@ const EditWorkoutForm: React.FC<EditWorkoutFormProps> = ({ workoutId }) => {
                                 onClick={() => {
                                     setExerciseName("");
                                     setModalVisible(false);
+                                    setError("");
                                 }}
                             >
                                 Cancel

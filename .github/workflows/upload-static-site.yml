@@ -1,0 +1,26 @@
+name: upload-static-site.yml
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'cloud-groep22_frontend/**'
+  workflow_dispatch:
+
+jobs:
+  upload-static-site:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run Upload Script
+        run: |
+          chmod +x ./upload-site-blob.sh
+          ./upload-site-blob.sh
+        env:
+          AZURE_STORAGE_ACCOUNT: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
+          AZURE_STORAGE_CONTAINER: ${{ secrets.AZURE_STORAGE_CONTAINER }}
+          AZURE_STORAGE_SAS_TOKEN: ${{ secrets.AZURE_STORAGE_SAS_TOKEN }}

@@ -1,4 +1,4 @@
-import axios, { AxiosResponse } from 'axios';
+import axios, { AxiosResponse, AxiosError } from 'axios';
 
 export class AuthenticationService {
     private baseUrl: string;
@@ -13,7 +13,17 @@ export class AuthenticationService {
             const response = await axios.post(`${this.baseUrl}/auth/register`, { name, email, password });
             return response;
         } catch (error: any) {
-            return error.response;
+            console.error('Registration error:', error);
+            if (error.response) {
+                return error.response;
+            }
+            return {
+                data: { message: error.message || 'Network error occurred' },
+                status: 0,
+                statusText: 'Network Error',
+                headers: {},
+                config: error.config
+            } as AxiosResponse;
         }
     }
 
@@ -23,7 +33,17 @@ export class AuthenticationService {
             const response = await axios.post(`${this.baseUrl}/auth/login`, { email, password });
             return response;
         } catch (error: any) {
-            return error.response;
+            console.error('Login error:', error);
+            if (error.response) {
+                return error.response;
+            }
+            return {
+                data: { message: error.message || 'Network error occurred' },
+                status: 0,
+                statusText: 'Network Error',
+                headers: {},
+                config: error.config
+            } as AxiosResponse;
         }
     }
 }

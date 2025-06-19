@@ -33,7 +33,7 @@ export class WorkoutService {
 
     async getWorkoutById(id: number): Promise<AxiosResponse<any, any>> {
         try {
-            return await this.axiosInstance.get(`/workouts/${id}`);
+            return await this.axiosInstance.get(`/workouts/by/${id}`);
         } catch (error: any) {
             return error.response;
         }
@@ -41,7 +41,7 @@ export class WorkoutService {
 
     async updateWorkout(id: number, name: string, rest: number, exerciseIds: string[]): Promise<AxiosResponse<any, any>> {
         try {
-            return await this.axiosInstance.put(`/workouts/${id}`, {
+            return await this.axiosInstance.put(`/workouts/update/${id}`, {
                 name,
                 rest,
                 exerciseIds,
@@ -53,7 +53,7 @@ export class WorkoutService {
 
     async deleteWorkout(id: number): Promise<AxiosResponse<any, any>> {
         try {
-            return await this.axiosInstance.delete(`/workouts/${id}`);
+            return await this.axiosInstance.delete(`/workouts/delete/${id}`);
         } catch (error: any) {
             return error.response;
         }

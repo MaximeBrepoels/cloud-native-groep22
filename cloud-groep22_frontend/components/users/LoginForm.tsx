@@ -48,14 +48,25 @@ const LoginForm: React.FC = () => {
         clearErrors();
         if (!validate()) return;
 
-        const response = await authenticationService.login(email, password);
-        if (response.status === 200) {
-            sessionStorage.setItem("session_token", response.data.token);
-            sessionStorage.setItem("session_id", response.data.userId);
-            await updateStreak();
-            router.replace("/");
-        } else {
-            setError(response.data.message);
+        try {
+            const response = await authenticationService.login(email, password);
+
+            if (response.status === 0) {
+                setError("Unable to connect to server. Please check your connection and try again.");
+                return;
+            }
+
+            if (response.status === 200) {
+                sessionStorage.setItem("session_token", response.data.token);
+                sessionStorage.setItem("session_id", response.data.userId);
+                await updateStreak();
+                router.replace("/");
+            } else {
+                setError(response.data?.message || "Login failed. Please try again.");
+            }
+        } catch (error: any) {
+            console.error("Login error:", error);
+            setError("An unexpected error occurred. Please try again.");
         }
     };
 
@@ -97,7 +108,7 @@ const LoginForm: React.FC = () => {
             <div className="w-full flex flex-col items-center">
                 <button
                     type="button"
-                    className="text-blue-500 underline"
+                    className="text-blue-500 underline cursor-pointer"
                     onClick={() => router.push("/register")}
                 >
                     Don't have an account? Register here!

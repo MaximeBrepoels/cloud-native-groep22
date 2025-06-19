@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/cloud-native-groep22.iml" filepath="$PROJECT_DIR$/.idea/cloud-native-groep22.iml" />
+      <module fileurl="file://$PROJECT_DIR$/cloud-groep22_functions/fitapp-functions.iml" filepath="$PROJECT_DIR$/cloud-groep22_functions/fitapp-functions.iml" />
     </modules>
   </component>
 </project>
