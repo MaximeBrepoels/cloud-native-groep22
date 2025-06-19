@@ -12,6 +12,7 @@ env:
   AZURE_FUNCTIONAPP_NAME: cloud-groep22-fitapp-functions
   PACKAGE_DIRECTORY: './cloud-groep22_functions'
   JAVA_VERSION: '21'
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -27,14 +28,14 @@ jobs:
           distribution: 'microsoft'
 
       - name: 'Cache Maven dependencies'
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
 
-      - name: 'Restore Project Dependencies Using Mvn'
-        shell: bash  # Changed from pwsh to bash
+      - name: 'Restore Project Dependencies Using Maven'
+        shell: bash
         run: |
           cd ${{ env.PACKAGE_DIRECTORY }}
           mvn clean package -DskipTests
