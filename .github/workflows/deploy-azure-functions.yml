@@ -39,13 +39,19 @@ jobs:
           cd cloud-groep22_functions
           mvn clean package -DskipTests
           mvn azure-functions:package
-      
+
+      - name: List build output (for debugging)
+        run: |
+          echo "Contents of target directory:"
+          ls -la cloud-groep22_functions/target/
+          echo "Contents of azure-functions directory:"
+          ls -la cloud-groep22_functions/target/azure-functions/ || echo "azure-functions directory not found"
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: fitapp-functions
-          path: 'cloud-groep22_functions/target/azure-functions/*.jar'
-
+          path: 'cloud-groep22_functions/target/azure-functions/'
 
   deploy:
     runs-on: ubuntu-latest
@@ -60,10 +66,15 @@ jobs:
         with:
           name: fitapp-functions
 
+      - name: List downloaded files (for debugging)
+        run: |
+          echo "Downloaded artifact contents:"
+          ls -la .
+
       - name: Deploy to Azure Function App
         uses: azure/functions-action@v1
         id: deploy-to-functionapp
         with:
           app-name: ${{ secrets.AZURE_FUNCTIONAPP_NAME }}
-          package: '${{ github.workspace }}/cloud-groep22_functions/target/azure-functions/*.jar'
+          package: '.'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_645F302572EC4514807278EAAD82FF55 }}
