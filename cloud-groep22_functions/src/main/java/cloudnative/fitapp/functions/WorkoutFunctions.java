@@ -1,5 +1,6 @@
 package cloudnative.fitapp.functions;
 
+import cloudnative.fitapp.cache.RedisCache;
 import com.microsoft.azure.functions.*;
 import com.microsoft.azure.functions.annotation.*;
 import cloudnative.fitapp.domain.Exercise;
@@ -151,11 +152,32 @@ public class WorkoutFunctions extends BaseFunctionHandler {
         try {
             validateToken(request);
 
+            RedisCache cache = RedisCache.getInstance();
+            Object cachedWorkouts = cache.getCachedUserWorkouts(userId);
+
+            if (cachedWorkouts != null) {
+                context.getLogger().info("Data retrieved from cache for user workouts: " + userId);
+                return request.createResponseBuilder(HttpStatus.OK)
+                        .body(cachedWorkouts)
+                        .header("Content-Type", "application/json")
+                        .header("FITAPP-LOCATION", "cache")
+                        .build();
+            }
+
+            context.getLogger().info("Data not in cache for user workouts: " + userId);
             String query = String.format("SELECT * FROM c WHERE c.userId = '%s'", userId);
             List<Workout> workouts = cosmosDBService.query("workouts", query, Workout.class);
 
-            return createResponse(request, workouts);
+            cache.cacheUserWorkouts(userId, workouts);
+
+            return request.createResponseBuilder(HttpStatus.OK)
+                    .body(workouts)
+                    .header("Content-Type", "application/json")
+                    .header("FITAPP-LOCATION", "db")
+                    .build();
+
         } catch (Exception e) {
+            context.getLogger().severe("Error getting user workouts: " + e.getMessage());
             return handleException(request, e);
         }
     }
