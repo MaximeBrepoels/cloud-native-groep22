@@ -1,5 +1,6 @@
 package cloudnative.fitapp.functions;
 
+import cloudnative.fitapp.cache.RedisCache;
 import com.microsoft.azure.functions.*;
 import com.microsoft.azure.functions.annotation.*;
 import cloudnative.fitapp.domain.User;
@@ -99,6 +100,16 @@ public class AuthFunctions extends BaseFunctionHandler {
                 throw new IllegalArgumentException("Email and password are required");
             }
 
+            RedisCache cache = RedisCache.getInstance();
+            Object cachedUser = cache.getCachedUser(loginRequest.getEmail());
+
+            boolean cacheHit = cachedUser != null;
+            if (cacheHit) {
+                context.getLogger().info("Data retrieved from cache for user: " + loginRequest.getEmail());
+            } else {
+                context.getLogger().info("Data not in cache for user: " + loginRequest.getEmail());
+            }
+
             SimplePasswordEncoder passwordEncoder = new SimplePasswordEncoder();
             UserService userService = new UserService(cosmosDBService, passwordEncoder);
             AuthService authService = new AuthService(jwtUtil, cosmosDBService, userService, passwordEncoder);
@@ -110,8 +121,18 @@ public class AuthFunctions extends BaseFunctionHandler {
                 throw new RuntimeException("User not found after successful login");
             }
 
+            if (!cacheHit) {
+                cache.cacheUser(loginRequest.getEmail(), user);
+                context.getLogger().info("Cached user after successful login: " + loginRequest.getEmail());
+            }
+
             AuthResponse response = new AuthResponse(token, user.getId());
-            return createResponse(request, response);
+
+            return request.createResponseBuilder(HttpStatus.OK)
+                    .body(response)
+                    .header("Content-Type", "application/json")
+                    .header("FITAPP-LOCATION", cacheHit ? "cache" : "db")
+                    .build();
 
         } catch (Exception e) {
             context.getLogger().severe("Login error: " + e.getMessage());

@@ -5,12 +5,12 @@ on:
     branches:
       - master
     paths:
-      - 'cloud-groep22_frontend/**'
+      - "cloud-groep22_frontend/**"
   workflow_dispatch:
 
 env:
-  NODE_VERSION: '20'
-  FRONTEND_DIRECTORY: './cloud-groep22_frontend'
+  NODE_VERSION: "20"
+  FRONTEND_DIRECTORY: "./cloud-groep22_frontend"
 
 jobs:
   upload-static-site:
@@ -24,8 +24,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: '${{ env.FRONTEND_DIRECTORY }}/package-lock.json'
+          cache: "npm"
+          cache-dependency-path: "${{ env.FRONTEND_DIRECTORY }}/package-lock.json"
 
       - name: Install Dependencies
         run: |
