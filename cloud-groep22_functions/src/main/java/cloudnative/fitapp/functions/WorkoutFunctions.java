@@ -1,5 +1,6 @@
 package cloudnative.fitapp.functions;
 
+import cloudnative.fitapp.cache.RedisCache;
 import com.microsoft.azure.functions.*;
 import com.microsoft.azure.functions.annotation.*;
 import cloudnative.fitapp.domain.Exercise;
@@ -62,7 +63,16 @@ public class WorkoutFunctions extends BaseFunctionHandler {
             user.getWorkoutIds().add(workout.getId());
             cosmosDBService.update("users", user, user.getEmail(), User.class);
 
+            try {
+                RedisCache cache = RedisCache.getInstance();
+                cache.invalidateUserCache(userId);
+                context.getLogger().info("Cache invalidated for user after workout creation: " + userId);
+            } catch (Exception cacheError) {
+                context.getLogger().warning("Failed to invalidate cache: " + cacheError.getMessage());
+            }
+
             return createResponse(request, savedWorkout);
+
         } catch (Exception e) {
             return handleException(request, e);
         }
@@ -151,11 +161,32 @@ public class WorkoutFunctions extends BaseFunctionHandler {
         try {
             validateToken(request);
 
+            RedisCache cache = RedisCache.getInstance();
+            Object cachedWorkouts = cache.getCachedUserWorkouts(userId);
+
+            if (cachedWorkouts != null) {
+                context.getLogger().info("Data retrieved from cache for user workouts: " + userId);
+                return request.createResponseBuilder(HttpStatus.OK)
+                        .body(cachedWorkouts)
+                        .header("Content-Type", "application/json")
+                        .header("FITAPP-LOCATION", "cache")
+                        .build();
+            }
+
+            context.getLogger().info("Data not in cache for user workouts: " + userId);
             String query = String.format("SELECT * FROM c WHERE c.userId = '%s'", userId);
             List<Workout> workouts = cosmosDBService.query("workouts", query, Workout.class);
 
-            return createResponse(request, workouts);
+            cache.cacheUserWorkouts(userId, workouts);
+
+            return request.createResponseBuilder(HttpStatus.OK)
+                    .body(workouts)
+                    .header("Content-Type", "application/json")
+                    .header("FITAPP-LOCATION", "db")
+                    .build();
+
         } catch (Exception e) {
+            context.getLogger().severe("Error getting user workouts: " + e.getMessage());
             return handleException(request, e);
         }
     }
@@ -240,7 +271,7 @@ public class WorkoutFunctions extends BaseFunctionHandler {
 
             Exercise exercise = parseBody(request, Exercise.class);
 
-            // Find workout
+            // Find workout in DB
             String query = String.format("SELECT * FROM c WHERE c.id = '%s'", id);
             List<Workout> workouts = cosmosDBService.query("workouts", query, Workout.class);
 
@@ -249,15 +280,30 @@ public class WorkoutFunctions extends BaseFunctionHandler {
             }
 
             Workout workout = workouts.get(0);
+            String userId = workout.getUserId();
 
             // Create exercise with goal settings
             Exercise newExercise = new Exercise(exercise.getName(), exercise.getType(), goal);
             newExercise = workout.addExercise(newExercise);
 
-            // Update workout
+            // Update DB with updated workout
             cosmosDBService.update("workouts", workout, workout.getUserId(), Workout.class);
 
+            try {
+                RedisCache cache = RedisCache.getInstance();
+
+                cache.invalidateWorkoutCache(id);
+                context.getLogger().info("Invalidated workout exercise cache for workout: " + id);
+
+                cache.invalidateUserCache(userId);
+                context.getLogger().info("Invalidated user workout cache for user: " + userId);
+
+            } catch (Exception cacheError) {
+                context.getLogger().warning("⚠Failed to invalidate cache: " + cacheError.getMessage());
+            }
+
             return createResponse(request, newExercise);
+
         } catch (Exception e) {
             return handleException(request, e);
         }
@@ -291,6 +337,7 @@ public class WorkoutFunctions extends BaseFunctionHandler {
             String name = jsonNode.get("name").asText();
             int rest = jsonNode.get("rest").asInt();
 
+            // Find workout in DB
             String query = String.format("SELECT * FROM c WHERE c.id = '%s'", id);
             List<Workout> workouts = cosmosDBService.query("workouts", query, Workout.class);
 
@@ -299,12 +346,29 @@ public class WorkoutFunctions extends BaseFunctionHandler {
             }
 
             Workout workout = workouts.get(0);
+            String userId = workout.getUserId();
+
             workout.setName(name);
             workout.setRest(rest);
 
+            // Update DB with updated workout
             Workout updatedWorkout = cosmosDBService.update("workouts", workout, workout.getUserId(), Workout.class);
 
+            try {
+                RedisCache cache = RedisCache.getInstance();
+
+                cache.invalidateWorkoutCache(id);
+                context.getLogger().info("Invalidated workout cache for updated workout: " + id);
+
+                cache.invalidateUserCache(userId);
+                context.getLogger().info("Invalidated user workout cache for user: " + userId);
+
+            } catch (Exception cacheError) {
+                context.getLogger().warning("Failed to invalidate cache: " + cacheError.getMessage());
+            }
+
             return createResponse(request, updatedWorkout);
+
         } catch (Exception e) {
             return handleException(request, e);
         }

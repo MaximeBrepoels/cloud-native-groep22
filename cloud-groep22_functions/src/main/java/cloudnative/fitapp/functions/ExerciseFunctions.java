@@ -1,5 +1,6 @@
 package cloudnative.fitapp.functions;
 
+import cloudnative.fitapp.cache.RedisCache;
 import cloudnative.fitapp.domain.Set;
 import cloudnative.fitapp.security.SimplePasswordEncoder;
 import com.microsoft.azure.functions.*;
@@ -202,14 +203,36 @@ public class ExerciseFunctions extends BaseFunctionHandler {
         try {
             validateToken(request);
 
+            RedisCache cache = RedisCache.getInstance();
+            Object cachedExercises = cache.getCachedWorkoutExercises(workoutId);
+
+            if (cachedExercises != null) {
+                context.getLogger().info("Data retrieved from cache for workout exercises: " + workoutId);
+                return request.createResponseBuilder(HttpStatus.OK)
+                        .body(cachedExercises)
+                        .header("Content-Type", "application/json")
+                        .header("FITAPP-LOCATION", "cache")
+                        .build();
+            }
+
+            context.getLogger().info("Data not in cache for workout exercises: " + workoutId);
             SimplePasswordEncoder passwordEncoder = new SimplePasswordEncoder();
             UserService userService = new UserService(cosmosDBService, passwordEncoder);
             WorkoutService workoutService = new WorkoutService(cosmosDBService, userService);
             ExerciseService exerciseService = new ExerciseService(cosmosDBService, workoutService);
 
             List<Exercise> exercises = exerciseService.getExercisesByWorkoutId(Long.parseLong(workoutId));
-            return createResponse(request, exercises);
+
+            cache.cacheWorkoutExercises(workoutId, exercises);
+
+            return request.createResponseBuilder(HttpStatus.OK)
+                    .body(exercises)
+                    .header("Content-Type", "application/json")
+                    .header("FITAPP-LOCATION", "db")
+                    .build();
+
         } catch (Exception e) {
+            context.getLogger().severe("Error getting exercises by workout ID: " + e.getMessage());
             return handleException(request, e);
         }
     }
