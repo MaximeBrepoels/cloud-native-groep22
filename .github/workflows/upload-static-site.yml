@@ -31,6 +31,13 @@ jobs:
         run: |
           cd ${{ env.FRONTEND_DIRECTORY }}
           npm ci
+          
+      - name: Build with correct API URL
+        run: |
+            cd ${{ env.FRONTEND_DIRECTORY }}
+            npm run build:static
+        env:
+          NEXT_PUBLIC_API_URL: https://cloud-groep22-fitapp-functions.azurewebsites.net/api
 
       - name: Run Upload Script
         run: |
