@@ -6,7 +6,7 @@ export class ExerciseService {
 
     constructor() {
         this.axiosInstance = axios.create({
-            baseURL: process.env.NEXT_PUBLIC_API_URL,
+            baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://cloud-groep22-fitapp-functions.azurewebsites.net/api',
         });
 
         this.axiosInstance.interceptors.request.use(

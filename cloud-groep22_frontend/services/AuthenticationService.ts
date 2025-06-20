@@ -4,7 +4,7 @@ export class AuthenticationService {
     private baseUrl: string;
 
     constructor() {
-        this.baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+        this.baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://cloud-groep22-fitapp-functions.azurewebsites.net/api';
     }
 
     // Register a new user
