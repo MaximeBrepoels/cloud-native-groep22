@@ -32,6 +32,13 @@ jobs:
           cd ${{ env.FRONTEND_DIRECTORY }}
           npm ci
 
+      - name: Build with correct API URL
+        run: |
+          cd ${{ env.FRONTEND_DIRECTORY }}
+          npm run build:static
+        env:
+          NEXT_PUBLIC_API_URL: https://cloud-groep22-fitapp-functions.azurewebsites.net/api
+
       - name: Run Upload Script
         run: |
           chmod +x ./upload-site-blob.sh
@@ -40,3 +47,4 @@ jobs:
           AZURE_STORAGE_ACCOUNT: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
           AZURE_STORAGE_CONTAINER: ${{ secrets.AZURE_STORAGE_CONTAINER }}
           AZURE_STORAGE_SAS_TOKEN: ${{ secrets.AZURE_STORAGE_SAS_TOKEN }}
+          NEXT_PUBLIC_API_URL: https://cloud-groep22-fitapp-functions.azurewebsites.net/api

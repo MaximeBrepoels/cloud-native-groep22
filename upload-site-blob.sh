@@ -1,17 +1,17 @@
 #!/bin/bash
 
-# Build the front-end
-echo "Building front-end..."
-cd cloud-groep22_frontend
-npm run build:static
+# Build the front-end - COMMENTED OUT since we build in workflow
+# echo "Building front-end..."
+# cd cloud-groep22_frontend
+# npm run build:static
 
-# Check if build succeeded
-if [ $? -ne 0 ]; then
-    echo "Build failed!"
-    exit 1
-fi
+# Check if build succeeded - COMMENTED OUT
+# if [ $? -ne 0 ]; then
+#     echo "Build failed!"
+#     exit 1
+# fi
 
-cd ..
+# cd .. - COMMENTED OUT since we don't change directory anymore
 
 # Environment variables for Azure Storage account
 storage_account="$AZURE_STORAGE_ACCOUNT"
@@ -27,7 +27,7 @@ if [ ! -d "$local_build_frontend_folder" ]; then
     exit 1
 fi
 
-# Iterate over each file in the local build front-end folder (/out)
+# Rest of the script remains exactly the same...
 find "$local_build_frontend_folder" -type f | while read -r file_path; do
     if [ -f "$file_path" ]; then
         # Extract the relative path from the local folder

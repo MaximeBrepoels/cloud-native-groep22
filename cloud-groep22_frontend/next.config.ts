@@ -8,10 +8,11 @@ const nextConfig: NextConfig = {
   },
   reactStrictMode: true,
   devIndicators: false,
-  assetPrefix: process.env.NODE_ENV === 'production'
-      ? 'https://cloudgroep22storage.z6.web.core.windows.net'
-      : '',
-  basePath: process.env.NODE_ENV === 'production' ? '' : ''
+  // Remove or comment out these lines:
+  // assetPrefix: process.env.NODE_ENV === 'production'
+  //     ? 'https://cloudgroep22storage.z6.web.core.windows.net'
+  //     : '',
+  // basePath: process.env.NODE_ENV === 'production' ? '' : ''
 };
 
 export default nextConfig;
