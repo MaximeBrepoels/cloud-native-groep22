@@ -236,16 +236,6 @@ This project demonstrates practical experience with:
 - Security practices (password hashing, token-based auth, CORS)
 - Performance optimization with caching strategies
 
-## Future Enhancements
-
-Potential improvements for this project:
-- Add social features (share workouts, follow friends)
-- Implement workout templates and recommended exercises
-- Add mobile app using React Native
-- Integrate with fitness wearables APIs
-- Implement advanced analytics and AI-powered workout recommendations
-- Add comprehensive unit and integration tests
-
 ## License
 
 This project is part of a Cloud Native Engineering course assignment.
@@ -254,10 +244,7 @@ This project is part of a Cloud Native Engineering course assignment.
 
 **Maxime Brepoels** - [GitHub](https://github.com/MaximeBrepoels)
 
-Feel free to reach out if you have questions about this project or want to discuss cloud-native development!
-
 ## Acknowledgments
 
 - Built as part of Cloud Native Engineering coursework
 - Demonstrates modern cloud-native architecture patterns
-- Implements industry-standard security and DevOps practices
